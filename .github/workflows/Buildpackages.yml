@@ -72,7 +72,7 @@ jobs:
           allowUpdates: true
           replacesArtifacts: true
           artifacts: "bin/packages/${{ matrix.arch }}/packages_ci/*.apk"
-           body: |
+          body: |
             ## Package Information
             - Architecture: ${{ matrix.arch }}
             - SDK: ${{ matrix.SDK }}
