@@ -32,10 +32,6 @@ jobs:
       uses: actions/checkout@main
       with:
         fetch-depth: 0
-
-    - uses: de-vri-es/setup-git-credentials@v2
-      with:
-        credentials: https://kiddin9:${{ secrets.TOKEN_KIDDIN9 }}@github.com/
     
     - name: Set git identity
       run : |
@@ -411,11 +407,6 @@ jobs:
           mv -f $pkg/Makefile $pkg/Makefile.k >/dev/null 2>&1 || true
         done
         rm -rf */.github
-
-
-    - name: SSH connection to Actions
-      uses: kiddin9/debugger-action@master
-      if: github.event.inputs.ssh == 'true'
 
     - name: Apply patches
       run: |
