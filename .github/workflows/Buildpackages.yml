@@ -29,9 +29,7 @@ jobs:
           - luci-app-taskplan
           - luci-app-samba4
           - luci-app-diskman
-          - luci-app-istorepanel
           - luci-app-smbuser
-          - luci-app-store
           - luci-app-tcpdump
           - luci-app-temp-status
 
@@ -43,15 +41,6 @@ jobs:
       - name: Generate timestamp
         id: timestamp
         run: echo "time=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
-
-      - name: Building packages for ${{ matrix.pakgs }}
-        uses: sbwml/openwrt-gh-action-sdk@main
-        env:
-          ARCH: ${{ matrix.arch }}-${{ matrix.SDK }}
-          FEEDNAME: packages_ci
-          PACKAGES: ${{ matrix.pakgs }}
-          NO_REFRESH_CHECK: true
-          V: s
 
       - name: Building packages for ${{ matrix.pakgs }}
         uses: sbwml/openwrt-gh-action-sdk@main
