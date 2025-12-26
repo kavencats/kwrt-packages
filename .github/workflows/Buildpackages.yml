@@ -1,6 +1,7 @@
 name: Build packages
 
 on:
+  push:
   workflow_dispatch:
     inputs:
       version:
@@ -28,6 +29,11 @@ jobs:
           - luci-app-taskplan
           - luci-app-samba4
           - luci-app-diskman
+          - luci-app-istorepanel
+          - luci-app-smbuser
+          - luci-app-store
+          - luci-app-tcpdump
+          - luci-app-temp-status
 
     steps:
       - uses: actions/checkout@v4
