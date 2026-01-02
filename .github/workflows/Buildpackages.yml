@@ -32,6 +32,7 @@ jobs:
           - luci-app-smbuser
           - luci-app-tcpdump
           - luci-app-temp-status
+          - luci-app-adguardhome
 
     steps:
       - uses: actions/checkout@v4
