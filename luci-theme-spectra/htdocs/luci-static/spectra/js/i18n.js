@@ -355,6 +355,8 @@ const languageTranslations = {
         'play_now': '立即播放',
         'video_info': '视频信息',
         'items': '个项目',
+        'picture_in_picture': '画中画',
+        'shortcuts_hint': 'A - 上一首\nS - 播放/暂停\nD - 下一首\nW - 画中画\nQ - 播放列表\nE - 搜索',
         'command_install_label': '命令安装'
     },
     'hk': {
@@ -713,6 +715,8 @@ const languageTranslations = {
         'play_now': '立即播放',
         'video_info': '影片資訊',
         'items': '個項目',
+        'picture_in_picture': '子母畫面',
+        'shortcuts_hint': 'A - 上一首\nS - 播放／暫停\nD - 下一首\nW - 子母畫面\nQ - 播放清單\nE - 搜尋',
         'theme_download': '主題下載'
     },
     'en': {
@@ -1075,6 +1079,8 @@ const languageTranslations = {
         'play_now': 'Play Now',
         'video_info': 'Video Info',
         'items': 'items',
+        'picture_in_picture': 'Picture-in-Picture',
+        'shortcuts_hint': 'A - Previous\nS - Play/Pause\nD - Next\nW - PiP\nQ - Playlist\nE - Search',
         'theme_download': 'Theme download'
     },
     'ko': {
@@ -1428,6 +1434,8 @@ const languageTranslations = {
         'play_now': '지금 재생',
         'video_info': '동영상 정보',
         'items': '개 항목',
+        'picture_in_picture': '화면 속 화면',
+        'shortcuts_hint': 'A - 이전 곡\nS - 재생/일시정지\nD - 다음 곡\nW - 화면 속 화면\nQ - 재생목록\nE - 검색',
         'theme_download': '테마 다운로드'
     },
     'vi': {
@@ -1781,6 +1789,8 @@ const languageTranslations = {
         'play_now': 'Phát ngay',
         'video_info': 'Thông tin video',
         'items': 'mục',
+        'picture_in_picture': 'Hình trong hình',
+        'shortcuts_hint': 'A - Bài trước\nS - Phát/Tạm dừng\nD - Bài tiếp theo\nW - Hình trong hình\nQ - Danh sách phát\nE - Tìm kiếm',
         'theme_download': 'Tải chủ đề'
     },
     'th': {
@@ -2134,6 +2144,8 @@ const languageTranslations = {
         'play_now': 'เล่นทันที',
         'video_info': 'ข้อมูลวิดีโอ',
         'items': 'รายการ',
+        'picture_in_picture': 'Hình trong hình',
+        'shortcuts_hint': 'A - เพลงก่อนหน้า\nS - เล่น/หยุดชั่วคราว\nD - เพลงถัดไป\nW - ภาพซ้อนภาพ\nQ - เพลย์ลิสต์\nE - ค้นหา',
         'theme_download': 'ดาวน์โหลดธีม'
     },
     'ja': {
@@ -2487,6 +2499,8 @@ const languageTranslations = {
         'play_now': '今すぐ再生',
         'video_info': '動画情報',
         'items': '件',
+        'picture_in_picture': 'ピクチャー・イン・ピクチャー',
+        'shortcuts_hint': 'A - 前の曲\nS - 再生/一時停止\nD - 次の曲\nW - ピクチャーインピクチャー\nQ - プレイリスト\nE - 検索',
         'theme_download': 'テーマダウンロード'
     },
     'ru': {
@@ -2840,6 +2854,8 @@ const languageTranslations = {
         'play_now': 'Воспроизвести',
         'video_info': 'Информация о видео',
         'items': 'элементов',
+        'picture_in_picture': 'Картинка в картинке',
+        'shortcuts_hint': 'A - Предыдущий трек\nS - Воспроизведение/Пауза\nD - Следующий трек\nW - Картинка в картинке\nQ - Плейлист\nE - Поиск',
         'theme_download': 'Скачать тему'
     },
     'ar': {
@@ -3193,6 +3209,8 @@ const languageTranslations = {
         'play_now': 'تشغيل الآن',
         'video_info': 'معلومات الفيديو',
         'items': 'عنصر',
+        'picture_in_picture': 'صورة داخل صورة',
+        'shortcuts_hint': 'A - المقطع السابق\nS - تشغيل/إيقاف مؤقت\nD - المقطع التالي\nW - صورة داخل صورة\nQ - قائمة التشغيل\nE - بحث',
         'theme_download': 'تحميل السمة'
     },
     'es': {
@@ -3546,6 +3564,8 @@ const languageTranslations = {
         'play_now': 'Reproducir ahora',
         'video_info': 'Información del video',
         'items': 'elementos',
+        'picture_in_picture': 'Imagen en imagen',
+        'shortcuts_hint': 'A - Anterior\nS - Reproducir/Pausar\nD - Siguiente\nW - Imagen en imagen\nQ - Lista de reproducción\nE - Buscar',
         'theme_download': 'Descarga del tema'
     },
     'de': {
@@ -3899,6 +3919,8 @@ const languageTranslations = {
         'play_now': 'Jetzt abspielen',
         'video_info': 'Videoinfo',
         'items': 'Elemente',
+        'picture_in_picture': 'Bild-in-Bild',
+        'shortcuts_hint': 'A - Vorheriger Titel\nS - Wiedergabe/Pause\nD - Nächster Titel\nW - Bild-in-Bild\nQ - Wiedergabeliste\nE - Suche',
         'theme_download': 'Thema herunterladen'
     },
     'fr': {
@@ -4252,6 +4274,8 @@ const languageTranslations = {
         'play_now': 'Lire maintenant',
         'video_info': 'Infos vidéo',
         'items': 'éléments',
+        'picture_in_picture': 'Image dans l’image',
+        'shortcuts_hint': 'A - Précédent\nS - Lecture/Pause\nD - Suivant\nW - Image dans l’image\nQ - Playlist\nE - Rechercher',
         'theme_download': 'Télécharger le thème'
     },
     'bn': {
@@ -4606,6 +4630,8 @@ const languageTranslations = {
         'play_now': 'এখন চালান',
         'video_info': 'ভিডিও তথ্য',
         'items': 'টি আইটেম', 
+        'picture_in_picture': 'ছবির ভিতর ছবি',
+        'shortcuts_hint': 'A - আগের ট্র্যাক\nS - চালু/বিরতি\nD - পরের ট্র্যাক\nW - ছবির ভিতর ছবি\nQ - প্লেলিস্ট\nE - অনুসন্ধান',
         'theme_download': 'থিম ডাউনলোড'
     }
 };
