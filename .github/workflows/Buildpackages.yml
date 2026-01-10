@@ -32,6 +32,7 @@ jobs:
           - luci-app-tcpdump
           - luci-app-temp-status
           - luci-app-adguardhome
+          - luci-app-watchat
 
     steps:
       - uses: actions/checkout@v4
