@@ -80,17 +80,36 @@ class DNSAddress {
 		} else
 			this.rawparams = '';
 		this.params = new URLSearchParams(this.rawparams);
+		// disable-qtypes
+		// https://dns.google/dns-query#GLOBAL&disable-qtype-1=true&disable-qtype-28=true&disable-qtype-33=true&disable-qtype-65=true
+		let qtypes = [...this.params.keys()].filter(e => e.match(/^disable-qtype-\d+$/)).map(e => e.replace('disable-qtype-', ''))
+		if (!hm.isEmpty(qtypes))
+			this.params.set('disable-qtypes', qtypes);
 	}
 
 	parseParam(param) {
-		return this.params.has(param) ? decodeURI(this.params.get(param)) : null;
+		switch (param) {
+			case 'disable-qtypes': // https://github.com/miekg/dns/blob/master/types.go#L26
+				return this.params.has(param) ? this.params.get(param).split(',') : [];
+			default:
+				return this.params.has(param) ? decodeURI(this.params.get(param)) : null;
+		}
 	}
 
 	setParam(param, value) {
-		if (value) {
-			this.params.set(param, value);
-		} else
-			this.params.delete(param);
+		switch (param) {
+			case 'disable-qtypes':
+				if (!hm.isEmpty(value))
+					this.params.set(param, value);
+				else
+					this.params.delete(param);
+				break;
+			default:
+				if (value)
+					this.params.set(param, value);
+				else
+					this.params.delete(param);
+		}
 
 		return this
 	}
@@ -99,8 +118,11 @@ class DNSAddress {
 		return this.addr + (this.params.size === 0 ? '' : '#' +
 			['detour', 'h3', 'skip-cert-verify', 'ecs', 'ecs-override', 'disable-ipv4', 'disable-ipv6'].map((k) => {
 				return this.params.has(k) ? '%s=%s'.format(k, encodeURI(this.params.get(k))) : null;
-			}).filter(v => v).join('&')
-		);
+			}).filter(v => v).join('&') +
+			(function(k) {
+				return this.params.has(k) ? '&' + this.params.get(k).split(',').map(v => `disable-qtype-${v}=true`).join('&') : '';
+			}.bind(this, 'disable-qtypes')())
+		).replace('#&', '#');
 	}
 }
 
@@ -234,7 +256,7 @@ const parseDNSYaml = hm.parseYaml.extend({
 		if (detour)
 			addr.setParam('detour', hm.preset_outbound.full.map(([key, label]) => key).includes(detour) ? detour : this.calcID(hm.glossary["proxy_group"].field, detour));
 
-		// key mapping // 2025/12/01
+		// key mapping // 2026/01/17
 		let config = {
 			id: this.id,
 			label: this.label,
@@ -266,7 +288,7 @@ const parseDNSPolicyYaml = hm.parseYaml.extend({
 				break;
 		}
 
-		// key mapping // 2025/12/01
+		// key mapping // 2026/01/17
 		let config = {
 			id: this.id,
 			label: this.label,
@@ -282,12 +304,12 @@ const parseDNSPolicyYaml = hm.parseYaml.extend({
 
 const parseRulesYaml = hm.parseYaml.extend({
 	key_mapping(cfg) {
-		let entry = this.parseRules(cfg); // 2025/07/11
+		let entry = this.parseRules(cfg);
 
 		if (!entry)
 			return null;
 
-		// key mapping // 2025/07/11
+		// key mapping // 2026/01/17
 		let config = {
 			id: this.id,
 			label: '%s %s'.format(this.id.slice(0,7), _('(Imported)')),
@@ -342,7 +364,7 @@ const parseRulesYaml = hm.parseYaml.extend({
 
 	ParseRule(tp, payload, target, params) {
 		// parse rules
-		// https://github.com/muink/mihomo/blob/300eb8b12a75504c4bd4a6037d2f6503fd3b347f/rules/parser.go#L12
+		// https://github.com/muink/mihomo/blob/487de9b5482d838acc33b067045a0dc293e35d40/rules/parser.go#L12
 
 		// nested ParseRule
 		let logical_payload, subrule;
@@ -551,7 +573,7 @@ function renderPayload(s, total, uciconfig) {
 			o.depends({type: /\b(CIDR|CIDR6)\b/});
 			o.depends({type: /\bIP-SUFFIX\b/});
 		}
-		o.depends(Object.fromEntries([[prefix + 'type', /\b(CIDR|CIDR6)\b/]]));
+		o.depends(Object.fromEntries([[prefix + 'type', /\bCIDR6?\b/]]));
 		o.depends(Object.fromEntries([[prefix + 'type', /\bIP-SUFFIX\b/]]));
 		initPayload(o, n, 'factor', uciconfig);
 
@@ -1143,9 +1165,11 @@ return view.extend({
 							'- DST-PORT,80,DIRECT\n' +
 							'- SRC-PORT,7777,DIRECT\n' +
 							'- PROCESS-PATH,/usr/bin/wget,auto\n' +
+							'- PROCESS-PATH-WILDCARD,/usr/*/wget,GLOBAL\n' +
 							'- PROCESS-PATH-REGEX,.*bin/wget,auto\n' +
 							'- PROCESS-PATH-REGEX,(?i).*Application\\\\chrome.*,GLOBAL\n' +
 							'- PROCESS-NAME,curl,auto\n' +
+							'- PROCESS-NAME-WILDCARD,*telegram*,GLOBAL\n' +
 							'- PROCESS-NAME-REGEX,curl$,auto\n' +
 							'- PROCESS-NAME-REGEX,(?i)Telegram,GLOBAL\n' +
 							'- PROCESS-NAME-REGEX,.*telegram.*,GLOBAL\n' +
@@ -1548,7 +1572,7 @@ return view.extend({
 		so.depends({'ecs': /.+/});
 		so.modalonly = true;
 
-		so = ss.option(form.Flag, 'disable-ipv4', _('Discard A responses'));
+		so = ss.option(form.Flag, 'disable-ipv4', _('Filter record: %s').format('A'));
 		so.default = so.disabled;
 		so.load = function(section_id) {
 			return boolToFlag(new DNSAddress(uci.get(data[0], section_id, 'address')).parseParam('disable-ipv4') ? true : false);
@@ -1564,7 +1588,7 @@ return view.extend({
 		so.write = function() {};
 		so.modalonly = true;
 
-		so = ss.option(form.Flag, 'disable-ipv6', _('Discard AAAA responses'));
+		so = ss.option(form.Flag, 'disable-ipv6', _('Filter record: %s').format('AAAA'));
 		so.default = so.disabled;
 		so.load = function(section_id) {
 			return boolToFlag(new DNSAddress(uci.get(data[0], section_id, 'address')).parseParam('disable-ipv6') ? true : false);
@@ -1573,6 +1597,23 @@ return view.extend({
 			let UIEl = this.section.getUIElement(section_id, 'address');
 
 			let newvalue = new DNSAddress(UIEl.getValue()).setParam('disable-ipv6', flagToBool(value) || null).toString();
+
+			UIEl.node.previousSibling.innerText = newvalue;
+			UIEl.setValue(newvalue);
+		}
+		so.write = function() {};
+		so.modalonly = true;
+
+		so = ss.option(form.DynamicList, 'disable-qtypes', _('Filter record type:'));
+		so.datatype = 'uinteger';
+		so.placeholder = '65';
+		so.load = function(section_id) {
+			return new DNSAddress(uci.get(data[0], section_id, 'address')).parseParam('disable-qtypes');
+		}
+		so.onchange = function(ev, section_id, value) {
+			let UIEl = this.section.getUIElement(section_id, 'address');
+
+			let newvalue = new DNSAddress(UIEl.getValue()).setParam('disable-qtypes', value).toString();
 
 			UIEl.node.previousSibling.innerText = newvalue;
 			UIEl.setValue(newvalue);

@@ -243,8 +243,10 @@ const rules_type = [
 
 	['PROCESS-PATH'],
 	['PROCESS-PATH-REGEX'],
+	['PROCESS-PATH-WILDCARD'],
 	['PROCESS-NAME'],
 	['PROCESS-NAME-REGEX'],
+	['PROCESS-NAME-WILDCARD'],
 	['UID'],
 
 	['NETWORK'],
@@ -329,10 +331,11 @@ const tls_client_auth_types = [
 ];
 
 const tls_client_fingerprints = [
+	['', _('Keep default')],
 	['chrome'],
 	['firefox'],
 	['safari'],
-	['iOS'],
+	['ios'],
 	['android'],
 	['edge'],
 	['360'],
