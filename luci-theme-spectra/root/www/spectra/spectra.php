@@ -366,6 +366,63 @@ $langData = [
         'current_path' => '当前路径',
         'disk'         => '磁盘',
         'root'         => '根目录', 
+        'openwrt_media_center' => 'OpenWrt 媒体中心',
+        'disk_usage' => '磁盘使用',
+        'refresh' => '刷新',
+        'fullscreen_play' => '全屏播放',
+        'media_categories' => '媒体分类',
+        'home' => '主页',
+        'recent_play' => '最近播放',
+        'system_status' => '系统状态',
+        'disk_usage_colon' => '磁盘使用:',
+        'free_space' => '剩余空间:',
+        'welcome_to_media_center' => '欢迎使用媒体中心',
+        'media_statistics' => '媒体统计',
+        'music_files' => '音乐文件',
+        'video_files' => '视频文件',
+        'image_files' => '图片文件',
+        'total_files' => '总计文件',
+        'quick_actions' => '快速操作',
+        'browse_music' => '浏览音乐',
+        'browse_video' => '浏览视频',
+        'browse_images' => '浏览图片',
+        'no_music_files_found' => '未找到音乐文件',
+        'no_video_files_found' => '未找到视频文件',
+        'no_image_files_found' => '未找到图片文件',
+        'no_playback_history' => '暂无播放记录',
+        'media_player' => '媒体播放器',
+        'cannot_play_media' => '无法播放媒体文件',
+        'possible_reasons' => '可能的原因:',
+        'reason_unsupported_format' => '文件格式不受浏览器支持',
+        'reason_incorrect_path' => '文件路径不正确',
+        'reason_server_unreachable' => '服务器无法访问该文件',
+        'auto_play' => '自动播放',
+        'auto_play_enabled' => '已开启自动播放',
+        'auto_play_disabled' => '已关闭自动播放',
+        'play'        => '播放',
+        'file_path'  => '路径：',
+        'media_info' => '媒体信息',
+        'system_status' => '系统状态',
+        'cpu_usage' => 'CPU使用率',
+        'memory_usage' => '内存使用率',
+        'openwrt_version' => 'OpenWrt版本',
+        'kernel_version' => '内核版本',
+        'board_model' => '主板型号',
+        'system_time' => '系统时间',
+        'load_average' => '负载平均值',
+        'uptime' => '运行时间',
+        'system_monitoring' => '系统监控',
+        'cpu_temperature' => 'CPU温度',
+        'running_processes' => '运行进程',
+        'cpu_frequency' => 'CPU频率',
+        'network_speed' => '网络速度',
+        'cores' => '核心',
+        'uptime_days'   => '天',
+        'uptime_hours' => '小时',
+        'minutes'      => '分钟',
+        'seconds'      => '秒',
+        'toggle_menu'   => '折叠菜单',
+        'expand_menu'   => '展开菜单',
         'file_summary' => '已选择 %d 个文件，合计 %s MB'
     ],
 
@@ -732,6 +789,63 @@ $langData = [
         'current_path' => '當前路徑',
         'disk'         => '磁碟',
         'root'         => '根目錄',
+        'openwrt_media_center' => 'OpenWrt 媒體中心',
+        'disk_usage' => '磁碟使用量',
+        'refresh' => '重新整理',
+        'fullscreen_play' => '全螢幕播放',
+        'media_categories' => '媒體分類',
+        'home' => '首頁',
+        'recent_play' => '最近播放',
+        'system_status' => '系統狀態',
+        'disk_usage_colon' => '磁碟使用量:',
+        'free_space' => '剩餘空間:',
+        'welcome_to_media_center' => '歡迎使用媒體中心',
+        'media_statistics' => '媒體統計',
+        'music_files' => '音樂檔案',
+        'video_files' => '影片檔案',
+        'image_files' => '圖片檔案',
+        'total_files' => '檔案總數',
+        'quick_actions' => '快速操作',
+        'browse_music' => '瀏覽音樂',
+        'browse_video' => '瀏覽影片',
+        'browse_images' => '瀏覽圖片',
+        'no_music_files_found' => '未找到音樂檔案',
+        'no_video_files_found' => '未找到影片檔案',
+        'no_image_files_found' => '未找到圖片檔案',
+        'no_playback_history' => '沒有播放記錄',
+        'media_player' => '媒體播放器',
+        'cannot_play_media' => '無法播放媒體檔案',
+        'possible_reasons' => '可能原因:',
+        'reason_unsupported_format' => '格式不支援',
+        'reason_incorrect_path' => '檔案路徑錯誤',
+        'reason_server_unreachable' => '伺服器無法存取檔案',
+        'auto_play' => '自動播放',
+        'auto_play_enabled' => '已啟用自動播放',
+        'auto_play_disabled' => '已停用自動播放',
+        'play'        => '播放',
+        'file_path'  => '路徑：',
+        'media_info' => '媒體資訊',
+        'system_status' => '系統狀態',
+        'cpu_usage' => 'CPU 使用率',
+        'memory_usage' => '記憶體使用率',
+        'openwrt_version' => 'OpenWrt 版本',
+        'kernel_version' => '核心版本',
+        'board_model' => '主機板型號',
+        'system_time' => '系統時間',
+        'load_average' => '負載平均值',
+        'uptime' => '運行時間',
+        'system_monitoring' => '系統監控',
+        'cpu_temperature' => 'CPU 溫度',
+        'running_processes' => '執行中程序',
+        'cpu_frequency' => 'CPU 頻率',
+        'network_speed' => '網路速度',
+        'cores' => '核心',
+        'uptime_days'   => '天',
+        'uptime_hours' => '小時',
+        'minutes'      => '分鐘',
+        'seconds'      => '秒',
+        'toggle_menu' => '摺疊選單',
+        'expand_menu' => '展開選單',
         'validateYaml' => '驗證 YAML 語法'
     ],
 
@@ -1098,6 +1212,63 @@ $langData = [
         'current_path' => '현재 경로',
         'disk'         => '디스크',
         'root'         => '루트 디렉토리',
+        'openwrt_media_center' => 'OpenWrt 미디어 센터',
+        'disk_usage' => '디스크 사용량',
+        'refresh' => '새로고침',
+        'fullscreen_play' => '전체 화면 재생',
+        'media_categories' => '미디어 분류',
+        'home' => '홈',
+        'recent_play' => '최근 재생',
+        'system_status' => '시스템 상태',
+        'disk_usage_colon' => '디스크 사용량:',
+        'free_space' => '여유 공간:',
+        'welcome_to_media_center' => '미디어 센터에 오신 것을 환영합니다',
+        'media_statistics' => '미디어 통계',
+        'music_files' => '음악 파일',
+        'video_files' => '비디오 파일',
+        'image_files' => '이미지 파일',
+        'total_files' => '전체 파일',
+        'quick_actions' => '빠른 작업',
+        'browse_music' => '음악 탐색',
+        'browse_video' => '비디오 탐색',
+        'browse_images' => '이미지 탐색',
+        'no_music_files_found' => '음악 파일이 없습니다',
+        'no_video_files_found' => '비디오 파일이 없습니다',
+        'no_image_files_found' => '이미지 파일이 없습니다',
+        'no_playback_history' => '재생 기록이 없습니다',
+        'media_player' => '미디어 플레이어',
+        'cannot_play_media' => '미디어를 재생할 수 없습니다',
+        'possible_reasons' => '가능한 원인:',
+        'reason_unsupported_format' => '지원되지 않는 형식',
+        'reason_incorrect_path' => '잘못된 파일 경로',
+        'reason_server_unreachable' => '서버에서 파일에 접근할 수 없습니다',
+        'auto_play' => '자동 재생',
+        'auto_play_enabled' => '자동 재생 켜짐',
+        'auto_play_disabled' => '자동 재생 꺼짐',
+        'play'        => '재생',
+        'file_path'  => '경로:',
+        'media_info' => '미디어 정보',
+        'system_status' => '시스템 상태',
+        'cpu_usage' => 'CPU 사용량',
+        'memory_usage' => '메모리 사용량',
+        'openwrt_version' => 'OpenWrt 버전',
+        'kernel_version' => '커널 버전',
+        'board_model' => '보드 모델',
+        'system_time' => '시스템 시간',
+        'load_average' => '평균 부하',
+        'uptime' => '가동 시간',
+        'system_monitoring' => '시스템 모니터링',
+        'cpu_temperature' => 'CPU 온도',
+        'running_processes' => '실행 중인 프로세스',
+        'cpu_frequency' => 'CPU 주파수',
+        'network_speed' => '네트워크 속도',
+        'cores' => '코어',
+        'uptime_days'   => '일',
+        'uptime_hours' => '시간',
+        'minutes'      => '분',
+        'seconds'      => '초',
+        'toggle_menu' => '메뉴 접기',
+        'expand_menu' => '메뉴 펼치기',
         'validateYaml' => 'YAML 구문 검증'
     ],
 
@@ -1463,6 +1634,63 @@ $langData = [
         'current_path' => '現在のパス',
         'disk'         => 'ディスク',
         'root'         => 'ルートディレクトリ',
+        'openwrt_media_center' => 'OpenWrt メディアセンター',
+        'disk_usage' => 'ディスク使用量',
+        'refresh' => '更新',
+        'fullscreen_play' => '全画面再生',
+        'media_categories' => 'メディア分類',
+        'home' => 'ホーム',
+        'recent_play' => '最近再生',
+        'system_status' => 'システム状態',
+        'disk_usage_colon' => 'ディスク使用量:',
+        'free_space' => '空き容量:',
+        'welcome_to_media_center' => 'メディアセンターへようこそ',
+        'media_statistics' => 'メディア統計',
+        'music_files' => '音楽ファイル',
+        'video_files' => '動画ファイル',
+        'image_files' => '画像ファイル',
+        'total_files' => '合計ファイル',
+        'quick_actions' => 'クイック操作',
+        'browse_music' => '音楽を閲覧',
+        'browse_video' => '動画を閲覧',
+        'browse_images' => '画像を閲覧',
+        'no_music_files_found' => '音楽ファイルが見つかりません',
+        'no_video_files_found' => '動画ファイルが見つかりません',
+        'no_image_files_found' => '画像ファイルが見つかりません',
+        'no_playback_history' => '再生履歴がありません',
+        'media_player' => 'メディアプレーヤー',
+        'cannot_play_media' => 'メディアを再生できません',
+        'possible_reasons' => '考えられる原因:',
+        'reason_unsupported_format' => '対応していない形式',
+        'reason_incorrect_path' => 'ファイルパスが正しくありません',
+        'reason_server_unreachable' => 'サーバーがファイルにアクセスできません',
+        'auto_play' => '自動再生',
+        'auto_play_enabled' => '自動再生オン',
+        'auto_play_disabled' => '自動再生オフ',
+        'play'        => '再生',
+        'file_path'  => 'パス：',
+        'media_info' => 'メディア情報',
+        'system_status' => 'システム状態',
+        'cpu_usage' => 'CPU 使用率',
+        'memory_usage' => 'メモリ使用率',
+        'openwrt_version' => 'OpenWrt バージョン',
+        'kernel_version' => 'カーネルバージョン',
+        'board_model' => 'ボードモデル',
+        'system_time' => 'システム時刻',
+        'load_average' => 'ロードアベレージ',
+        'uptime' => '稼働時間',
+        'system_monitoring' => 'システム監視',
+        'cpu_temperature' => 'CPU 温度',
+        'running_processes' => '実行中のプロセス',
+        'cpu_frequency' => 'CPU 周波数',
+        'network_speed' => 'ネットワーク速度',
+        'cores' => 'コア',
+        'uptime_days'   => '日',
+        'uptime_hours' => '時間',
+        'minutes'      => '分',
+        'seconds'      => '秒',
+        'toggle_menu' => 'メニューを折りたたむ',
+        'expand_menu' => 'メニューを展開',
         'validateYaml' => 'YAML構文を検証'
     ],
 
@@ -1828,6 +2056,63 @@ $langData = [
         'current_path' => 'Đường dẫn hiện tại',
         'disk'         => 'Đĩa',
         'root'         => 'Thư mục gốc',
+        'openwrt_media_center' => 'Trung tâm đa phương tiện OpenWrt',
+        'disk_usage' => 'Dung lượng đĩa',
+        'refresh' => 'Làm mới',
+        'fullscreen_play' => 'Phát toàn màn hình',
+        'media_categories' => 'Danh mục phương tiện',
+        'home' => 'Trang chủ',
+        'recent_play' => 'Phát gần đây',
+        'system_status' => 'Trạng thái hệ thống',
+        'disk_usage_colon' => 'Dung lượng đĩa:',
+        'free_space' => 'Dung lượng trống:',
+        'welcome_to_media_center' => 'Chào mừng đến với trung tâm đa phương tiện',
+        'media_statistics' => 'Thống kê phương tiện',
+        'music_files' => 'Tệp nhạc',
+        'video_files' => 'Tệp video',
+        'image_files' => 'Tệp hình ảnh',
+        'total_files' => 'Tổng số tệp',
+        'quick_actions' => 'Thao tác nhanh',
+        'browse_music' => 'Duyệt nhạc',
+        'browse_video' => 'Duyệt video',
+        'browse_images' => 'Duyệt hình ảnh',
+        'no_music_files_found' => 'Không tìm thấy tệp nhạc',
+        'no_video_files_found' => 'Không tìm thấy tệp video',
+        'no_image_files_found' => 'Không tìm thấy tệp hình ảnh',
+        'no_playback_history' => 'Không có lịch sử phát',
+        'media_player' => 'Trình phát đa phương tiện',
+        'cannot_play_media' => 'Không thể phát tệp',
+        'possible_reasons' => 'Nguyên nhân có thể:',
+        'reason_unsupported_format' => 'Định dạng không được hỗ trợ',
+        'reason_incorrect_path' => 'Đường dẫn tệp không đúng',
+        'reason_server_unreachable' => 'Máy chủ không thể truy cập tệp',
+        'auto_play' => 'Tự động phát',
+        'auto_play_enabled' => 'Đã bật tự động phát',
+        'auto_play_disabled' => 'Đã tắt tự động phát',
+        'play'        => 'Phát',
+        'file_path'  => 'Đường dẫn:',
+        'media_info' => 'Thông tin media',
+        'system_status' => 'Trạng thái hệ thống',
+        'cpu_usage' => 'Mức sử dụng CPU',
+        'memory_usage' => 'Mức sử dụng bộ nhớ',
+        'openwrt_version' => 'Phiên bản OpenWrt',
+        'kernel_version' => 'Phiên bản kernel',
+        'board_model' => 'Mẫu bo mạch',
+        'system_time' => 'Thời gian hệ thống',
+        'load_average' => 'Tải trung bình',
+        'uptime' => 'Thời gian hoạt động',
+        'system_monitoring' => 'Giám sát hệ thống',
+        'cpu_temperature' => 'Nhiệt độ CPU',
+        'running_processes' => 'Tiến trình đang chạy',
+        'cpu_frequency' => 'Tần số CPU',
+        'network_speed' => 'Tốc độ mạng',
+        'cores' => 'lõi',
+        'uptime_days'   => 'ngày',
+        'uptime_hours' => 'giờ',
+        'minutes'      => 'phút',
+        'seconds'      => 'giây',
+        'toggle_menu' => 'Thu gọn menu',
+        'expand_menu' => 'Mở rộng menu',
         'validateYaml' => 'Kiểm tra Cú pháp YAML'
     ],
 
@@ -2177,6 +2462,63 @@ $langData = [
         'current_path' => 'เส้นทางปัจจุบัน',
         'disk'         => 'ดิสก์',
         'root'         => 'ไดเรกทอรีราก',
+        'openwrt_media_center' => 'ศูนย์สื่อ OpenWrt',
+        'disk_usage' => 'การใช้ดิสก์',
+        'refresh' => 'รีเฟรช',
+        'fullscreen_play' => 'เล่นเต็มหน้าจอ',
+        'media_categories' => 'หมวดหมู่สื่อ',
+        'home' => 'หน้าแรก',
+        'recent_play' => 'เล่นล่าสุด',
+        'system_status' => 'สถานะระบบ',
+        'disk_usage_colon' => 'การใช้ดิสก์:',
+        'free_space' => 'พื้นที่ว่าง:',
+        'welcome_to_media_center' => 'ยินดีต้อนรับสู่ศูนย์สื่อ',
+        'media_statistics' => 'สถิติสื่อ',
+        'music_files' => 'ไฟล์เพลง',
+        'video_files' => 'ไฟล์วิดีโอ',
+        'image_files' => 'ไฟล์รูปภาพ',
+        'total_files' => 'ไฟล์ทั้งหมด',
+        'quick_actions' => 'การทำงานด่วน',
+        'browse_music' => 'เรียกดูเพลง',
+        'browse_video' => 'เรียกดูวิดีโอ',
+        'browse_images' => 'เรียกดูรูปภาพ',
+        'no_music_files_found' => 'ไม่พบไฟล์เพลง',
+        'no_video_files_found' => 'ไม่พบไฟล์วิดีโอ',
+        'no_image_files_found' => 'ไม่พบไฟล์รูปภาพ',
+        'no_playback_history' => 'ไม่มีประวัติการเล่น',
+        'media_player' => 'เครื่องเล่นสื่อ',
+        'cannot_play_media' => 'ไม่สามารถเล่นไฟล์สื่อ',
+        'possible_reasons' => 'สาเหตุที่เป็นไปได้:',
+        'reason_unsupported_format' => 'รูปแบบไฟล์ไม่รองรับ',
+        'reason_incorrect_path' => 'เส้นทางไฟล์ไม่ถูกต้อง',
+        'reason_server_unreachable' => 'เซิร์ฟเวอร์ไม่สามารถเข้าถึงไฟล์ได้',
+        'auto_play' => 'เล่นอัตโนมัติ',
+        'auto_play_enabled' => 'เปิดการเล่นอัตโนมัติ',
+        'auto_play_disabled' => 'ปิดการเล่นอัตโนมัติ',
+        'play'        => 'เล่น',
+        'file_path'  => 'เส้นทาง:',
+        'media_info' => 'ข้อมูลสื่อ',
+        'system_status' => 'สถานะระบบ',
+        'cpu_usage' => 'การใช้งาน CPU',
+        'memory_usage' => 'การใช้งานหน่วยความจำ',
+        'openwrt_version' => 'เวอร์ชัน OpenWrt',
+        'kernel_version' => 'เวอร์ชันเคอร์เนล',
+        'board_model' => 'รุ่นบอร์ด',
+        'system_time' => 'เวลาระบบ',
+        'load_average' => 'ค่าโหลดเฉลี่ย',
+        'uptime' => 'เวลาทำงาน',
+        'system_monitoring' => 'การตรวจสอบระบบ',
+        'cpu_temperature' => 'อุณหภูมิ CPU',
+        'running_processes' => 'กระบวนการที่กำลังทำงาน',
+        'cpu_frequency' => 'ความถี่ CPU',
+        'cores' => 'คอร์',
+        'network_speed' => 'ความเร็วเครือข่าย',
+        'uptime_days'   => 'วัน',
+        'uptime_hours' => 'ชั่วโมง',
+        'minutes'      => 'นาที',
+        'seconds'      => 'วินาที',
+        'toggle_menu' => 'ย่อเมนู',
+        'expand_menu' => 'ขยายเมนู',
         'validateYaml' => 'ตรวจสอบไวยากรณ์ YAML'
     ],
     'ru' => [
@@ -2527,6 +2869,63 @@ $langData = [
         'current_path' => 'Текущий путь',
         'disk'         => 'Диск',
         'root'         => 'Корневая папка',
+        'openwrt_media_center' => 'Медиацентр OpenWrt',
+        'disk_usage' => 'Использование диска',
+        'refresh' => 'Обновить',
+        'fullscreen_play' => 'Полноэкранное воспроизведение',
+        'media_categories' => 'Категории медиа',
+        'home' => 'Главная',
+        'recent_play' => 'Недавно воспроизведено',
+        'system_status' => 'Состояние системы',
+        'disk_usage_colon' => 'Использование диска:',
+        'free_space' => 'Свободное место:',
+        'welcome_to_media_center' => 'Добро пожаловать в медиацентр',
+        'media_statistics' => 'Статистика медиа',
+        'music_files' => 'Музыкальные файлы',
+        'video_files' => 'Видео файлы',
+        'image_files' => 'Файлы изображений',
+        'total_files' => 'Всего файлов',
+        'quick_actions' => 'Быстрые действия',
+        'browse_music' => 'Просмотр музыки',
+        'browse_video' => 'Просмотр видео',
+        'browse_images' => 'Просмотр изображений',
+        'no_music_files_found' => 'Музыкальные файлы не найдены',
+        'no_video_files_found' => 'Видео файлы не найдены',
+        'no_image_files_found' => 'Файлы изображений не найдены',
+        'no_playback_history' => 'История воспроизведения отсутствует',
+        'media_player' => 'Медиаплеер',
+        'cannot_play_media' => 'Невозможно воспроизвести файл',
+        'possible_reasons' => 'Возможные причины:',
+        'reason_unsupported_format' => 'Неподдерживаемый формат',
+        'reason_incorrect_path' => 'Неверный путь к файлу',
+        'reason_server_unreachable' => 'Сервер не может получить доступ к файлу',
+        'auto_play' => 'Автовоспроизведение',
+        'auto_play_enabled' => 'Автовоспроизведение включено',
+        'auto_play_disabled' => 'Автовоспроизведение отключено',
+        'play'        => 'Воспроизвести',
+        'file_path'  => 'Путь:',
+        'media_info' => 'Информация о медиа',
+        'system_status' => 'Состояние системы',
+        'cpu_usage' => 'Загрузка CPU',
+        'memory_usage' => 'Использование памяти',
+        'openwrt_version' => 'Версия OpenWrt',
+        'kernel_version' => 'Версия ядра',
+        'board_model' => 'Модель платы',
+        'system_time' => 'Системное время',
+        'load_average' => 'Средняя нагрузка',
+        'uptime' => 'Время работы',
+        'system_monitoring' => 'Мониторинг системы',
+        'cpu_temperature' => 'Температура CPU',
+        'running_processes' => 'Запущенные процессы',
+        'cpu_frequency' => 'Частота CPU',
+        'network_speed' => 'Скорость сети',
+        'cores' => 'ядра',
+        'uptime_days'   => 'дн.',
+        'uptime_hours' => 'часы',
+        'minutes'      => 'минуты',
+        'seconds'      => 'секунды',
+        'toggle_menu' => 'Свернуть меню',
+        'expand_menu' => 'Развернуть меню',
         'validateYaml' => 'Проверить синтаксис YAML'
     ],
     'ar' => [
@@ -2882,6 +3281,63 @@ $langData = [
         'current_path' => 'المسار الحالي',
         'disk'         => 'القرص',
         'root'         => 'المجلد الجذر',
+        'openwrt_media_center' => 'مركز وسائط OpenWrt',
+        'disk_usage' => 'استخدام القرص',
+        'refresh' => 'تحديث',
+        'fullscreen_play' => 'تشغيل بملء الشاشة',
+        'media_categories' => 'فئات الوسائط',
+        'home' => 'الرئيسية',
+        'recent_play' => 'تم التشغيل مؤخراً',
+        'system_status' => 'حالة النظام',
+        'disk_usage_colon' => 'استخدام القرص:',
+        'free_space' => 'المساحة المتبقية:',
+        'welcome_to_media_center' => 'مرحباً بك في مركز الوسائط',
+        'media_statistics' => 'إحصائيات الوسائط',
+        'music_files' => 'ملفات الموسيقى',
+        'video_files' => 'ملفات الفيديو',
+        'image_files' => 'ملفات الصور',
+        'total_files' => 'إجمالي الملفات',
+        'quick_actions' => 'إجراءات سريعة',
+        'browse_music' => 'تصفح الموسيقى',
+        'browse_video' => 'تصفح الفيديو',
+        'browse_images' => 'تصفح الصور',
+        'no_music_files_found' => 'لم يتم العثور على ملفات موسيقى',
+        'no_video_files_found' => 'لم يتم العثور على ملفات فيديو',
+        'no_image_files_found' => 'لم يتم العثور على ملفات صور',
+        'no_playback_history' => 'لا يوجد سجل تشغيل',
+        'media_player' => 'مشغل الوسائط',
+        'cannot_play_media' => 'لا يمكن تشغيل الملف',
+        'possible_reasons' => 'الأسباب المحتملة:',
+        'reason_unsupported_format' => 'تنسيق غير مدعوم',
+        'reason_incorrect_path' => 'مسار الملف غير صحيح',
+        'reason_server_unreachable' => 'الخادم لا يمكنه الوصول إلى الملف',
+        'auto_play' => 'تشغيل تلقائي',
+        'auto_play_enabled' => 'تم تفعيل التشغيل التلقائي',
+        'auto_play_disabled' => 'تم تعطيل التشغيل التلقائي',
+        'play'        => 'تشغيل',
+        'file_path'  => 'المسار:',
+        'media_info' => 'معلومات الوسائط',
+        'system_status' => 'حالة النظام',
+        'cpu_usage' => 'استخدام المعالج',
+        'memory_usage' => 'استخدام الذاكرة',
+        'openwrt_version' => 'إصدار OpenWrt',
+        'kernel_version' => 'إصدار النواة',
+        'board_model' => 'طراز اللوحة',
+        'system_time' => 'وقت النظام',
+        'load_average' => 'متوسط الحمل',
+        'uptime' => 'مدة التشغيل',
+        'system_monitoring' => 'مراقبة النظام',
+        'cpu_temperature' => 'درجة حرارة المعالج',
+        'running_processes' => 'العمليات قيد التشغيل',
+        'cpu_frequency' => 'تردد المعالج',
+        'network_speed' => 'سرعة الشبكة',
+        'cores' => 'أنوية',
+        'uptime_days'   => 'أيام',
+        'uptime_hours' => 'ساعات',
+        'minutes'      => 'دقائق',
+        'seconds'      => 'ثواني',
+        'toggle_menu' => 'طي القائمة',
+        'expand_menu' => 'توسيع القائمة',
         'validateYaml' => 'التحقق من صحة بناء جملة YAML'
     ],
     'es' => [
@@ -3231,6 +3687,63 @@ $langData = [
         'current_path' => 'Ruta actual',
         'disk'         => 'Disco',
         'root'         => 'Directorio raíz',
+        'openwrt_media_center' => 'Centro multimedia OpenWrt',
+        'disk_usage' => 'Uso del disco',
+        'refresh' => 'Actualizar',
+        'fullscreen_play' => 'Reproducción en pantalla completa',
+        'media_categories' => 'Categorías multimedia',
+        'home' => 'Inicio',
+        'recent_play' => 'Reproducido recientemente',
+        'system_status' => 'Estado del sistema',
+        'disk_usage_colon' => 'Uso del disco:',
+        'free_space' => 'Espacio libre:',
+        'welcome_to_media_center' => 'Bienvenido al centro multimedia',
+        'media_statistics' => 'Estadísticas multimedia',
+        'music_files' => 'Archivos de música',
+        'video_files' => 'Archivos de video',
+        'image_files' => 'Archivos de imagen',
+        'total_files' => 'Archivos totales',
+        'quick_actions' => 'Acciones rápidas',
+        'browse_music' => 'Explorar música',
+        'browse_video' => 'Explorar videos',
+        'browse_images' => 'Explorar imágenes',
+        'no_music_files_found' => 'No se encontraron archivos de música',
+        'no_video_files_found' => 'No se encontraron archivos de video',
+        'no_image_files_found' => 'No se encontraron archivos de imagen',
+        'no_playback_history' => 'Sin historial de reproducción',
+        'media_player' => 'Reproductor multimedia',
+        'cannot_play_media' => 'No se puede reproducir el archivo',
+        'possible_reasons' => 'Posibles razones:',
+        'reason_unsupported_format' => 'Formato no compatible',
+        'reason_incorrect_path' => 'Ruta de archivo incorrecta',
+        'reason_server_unreachable' => 'El servidor no puede acceder al archivo',
+        'auto_play' => 'Reproducción automática',
+        'auto_play_enabled' => 'Reproducción automática activada',
+        'auto_play_disabled' => 'Reproducción automática desactivada',
+        'play'        => 'Reproducir',
+        'file_path'  => 'Ruta:',
+        'media_info' => 'Información de medios',
+        'system_status' => 'Estado del sistema',
+        'cpu_usage' => 'Uso de CPU',
+        'memory_usage' => 'Uso de memoria',
+        'openwrt_version' => 'Versión de OpenWrt',
+        'kernel_version' => 'Versión del kernel',
+        'board_model' => 'Modelo de placa',
+        'system_time' => 'Hora del sistema',
+        'load_average' => 'Carga promedio',
+        'uptime' => 'Tiempo activo',
+        'system_monitoring' => 'Monitoreo del sistema',
+        'cpu_temperature' => 'Temperatura de CPU',
+        'running_processes' => 'Procesos en ejecución',
+        'cpu_frequency' => 'Frecuencia de CPU',
+        'network_speed' => 'Velocidad de red',
+        'cores' => 'núcleos',
+        'uptime_days'   => 'días',
+        'uptime_hours' => 'horas',
+        'minutes'      => 'minutos',
+        'seconds'      => 'segundos',
+        'toggle_menu' => 'Contraer menú',
+        'expand_menu' => 'Expandir menú',
         'validateYaml' => 'Validar sintaxis YAML'
     ],
     'de' => [
@@ -3580,6 +4093,63 @@ $langData = [
         'current_path' => 'Aktueller Pfad',
         'disk'         => 'Festplatte',
         'root'         => 'Stammverzeichnis',
+        'openwrt_media_center' => 'OpenWrt Medienzentrum',
+        'disk_usage' => 'Festplattennutzung',
+        'refresh' => 'Aktualisieren',
+        'fullscreen_play' => 'Vollbildwiedergabe',
+        'media_categories' => 'Medienkategorien',
+        'home' => 'Startseite',
+        'recent_play' => 'Kürzlich abgespielt',
+        'system_status' => 'Systemstatus',
+        'disk_usage_colon' => 'Festplattennutzung:',
+        'free_space' => 'Freier Speicher:',
+        'welcome_to_media_center' => 'Willkommen im Medienzentrum',
+        'media_statistics' => 'Medienstatistik',
+        'music_files' => 'Musikdateien',
+        'video_files' => 'Videodateien',
+        'image_files' => 'Bilddateien',
+        'total_files' => 'Dateien insgesamt',
+        'quick_actions' => 'Schnellaktionen',
+        'browse_music' => 'Musik durchsuchen',
+        'browse_video' => 'Videos durchsuchen',
+        'browse_images' => 'Bilder durchsuchen',
+        'no_music_files_found' => 'Keine Musikdateien gefunden',
+        'no_video_files_found' => 'Keine Videodateien gefunden',
+        'no_image_files_found' => 'Keine Bilddateien gefunden',
+        'no_playback_history' => 'Kein Wiedergabeverlauf',
+        'media_player' => 'Medienplayer',
+        'cannot_play_media' => 'Mediendatei kann nicht abgespielt werden',
+        'possible_reasons' => 'Mögliche Gründe:',
+        'reason_unsupported_format' => 'Nicht unterstütztes Format',
+        'reason_incorrect_path' => 'Falscher Dateipfad',
+        'reason_server_unreachable' => 'Server kann nicht auf die Datei zugreifen',
+        'auto_play' => 'Automatische Wiedergabe',
+        'auto_play_enabled' => 'Automatische Wiedergabe aktiviert',
+        'auto_play_disabled' => 'Automatische Wiedergabe deaktiviert',
+        'play'        => 'Abspielen',
+        'file_path'  => 'Pfad:',
+        'media_info' => 'Medieninformationen',
+        'system_status' => 'Systemstatus',
+        'cpu_usage' => 'CPU-Auslastung',
+        'memory_usage' => 'Speicherauslastung',
+        'openwrt_version' => 'OpenWrt-Version',
+        'kernel_version' => 'Kernel-Version',
+        'board_model' => 'Board-Modell',
+        'system_time' => 'Systemzeit',
+        'load_average' => 'Durchschnittliche Last',
+        'uptime' => 'Betriebszeit',
+        'system_monitoring' => 'Systemüberwachung',
+        'cpu_temperature' => 'CPU-Temperatur',
+        'running_processes' => 'Laufende Prozesse',
+        'cpu_frequency' => 'CPU-Frequenz',
+        'network_speed' => 'Netzwerkgeschwindigkeit',
+        'cores' => 'Kerne',
+        'uptime_days'   => 'Tage',
+        'uptime_hours' => 'Stunden',
+        'minutes'      => 'Minuten',
+        'seconds'      => 'Sekunden',
+        'toggle_menu' => 'Menü einklappen',
+        'expand_menu' => 'Menü ausklappen',
         'validateYaml' => 'YAML-Syntax validieren'
     ],
 
@@ -3930,6 +4500,63 @@ $langData = [
         'current_path' => 'Chemin actuel',
         'disk'         => 'Disque',
         'root'         => 'Répertoire racine',
+        'openwrt_media_center' => 'Centre multimédia OpenWrt',
+        'disk_usage' => 'Utilisation du disque',
+        'refresh' => 'Actualiser',
+        'fullscreen_play' => 'Lecture en plein écran',
+        'media_categories' => 'Catégories multimédia',
+        'home' => 'Accueil',
+        'recent_play' => 'Lecture récente',
+        'system_status' => 'État du système',
+        'disk_usage_colon' => 'Utilisation du disque:',
+        'free_space' => 'Espace libre:',
+        'welcome_to_media_center' => 'Bienvenue dans le centre multimédia',
+        'media_statistics' => 'Statistiques multimédia',
+        'music_files' => 'Fichiers audio',
+        'video_files' => 'Fichiers vidéo',
+        'image_files' => 'Fichiers image',
+        'total_files' => 'Total des fichiers',
+        'quick_actions' => 'Actions rapides',
+        'browse_music' => 'Parcourir la musique',
+        'browse_video' => 'Parcourir les vidéos',
+        'browse_images' => 'Parcourir les images',
+        'no_music_files_found' => 'Aucun fichier audio trouvé',
+        'no_video_files_found' => 'Aucun fichier vidéo trouvé',
+        'no_image_files_found' => 'Aucun fichier image trouvé',
+        'no_playback_history' => 'Aucun historique de lecture',
+        'media_player' => 'Lecteur multimédia',
+        'cannot_play_media' => 'Impossible de lire le fichier',
+        'possible_reasons' => 'Raisons possibles:',
+        'reason_unsupported_format' => 'Format non pris en charge',
+        'reason_incorrect_path' => 'Chemin du fichier incorrect',
+        'reason_server_unreachable' => 'Le serveur ne peut pas accéder au fichier',
+        'auto_play' => 'Lecture automatique',
+        'auto_play_enabled' => 'Lecture automatique activée',
+        'auto_play_disabled' => 'Lecture automatique désactivée',
+        'play'        => 'Lire',
+        'file_path'  => 'Chemin :',
+        'media_info' => 'Informations média',
+        'system_status' => 'État du système',
+        'cpu_usage' => 'Utilisation du CPU',
+        'memory_usage' => 'Utilisation de la mémoire',
+        'openwrt_version' => 'Version OpenWrt',
+        'kernel_version' => 'Version du noyau',
+        'board_model' => 'Modèle de carte',
+        'system_time' => 'Heure système',
+        'load_average' => 'Charge moyenne',
+        'uptime' => 'Temps de fonctionnement',
+        'system_monitoring' => 'Surveillance du système',
+        'cpu_temperature' => 'Température du CPU',
+        'running_processes' => 'Processus en cours',
+        'cpu_frequency' => 'Fréquence du CPU',
+        'network_speed' => 'Vitesse du réseau',
+        'cores' => 'cœurs',
+        'uptime_days'   => 'jours',
+        'uptime_hours' => 'heures',
+        'minutes'      => 'minutes',
+        'seconds'      => 'secondes',
+        'toggle_menu' => 'Réduire le menu',
+        'expand_menu' => 'Déployer le menu',
         'validateYaml' => 'Valider la syntaxe YAML'
     ],
     'en' => [
@@ -4292,6 +4919,63 @@ $langData = [
         'current_path' => 'Path:',
         'disk'         => 'Disk',
         'root'         => 'root', 
+        'openwrt_media_center' => 'OpenWrt Media Center',
+        'disk_usage' => 'Disk Usage',
+        'refresh' => 'Refresh',
+        'fullscreen_play' => 'Fullscreen Play',
+        'media_categories' => 'Media Categories',
+        'home' => 'Home',
+        'recent_play' => 'Recently Played',
+        'system_status' => 'System Status',
+        'disk_usage_colon' => 'Disk Usage:',
+        'free_space' => 'Free Space:',
+        'welcome_to_media_center' => 'Welcome to Media Center',
+        'media_statistics' => 'Media Statistics',
+        'music_files' => 'Music Files',
+        'video_files' => 'Video Files',
+        'image_files' => 'Image Files',
+        'total_files' => 'Total Files',
+        'quick_actions' => 'Quick Actions',
+        'browse_music' => 'Browse Music',
+        'browse_video' => 'Browse Videos',
+        'browse_images' => 'Browse Images',
+        'no_music_files_found' => 'No music files found',
+        'no_video_files_found' => 'No video files found',
+        'no_image_files_found' => 'No image files found',
+        'no_playback_history' => 'No playback history',
+        'media_player' => 'Media Player',
+        'cannot_play_media' => 'Cannot play media file',
+        'possible_reasons' => 'Possible reasons:',
+        'reason_unsupported_format' => 'Unsupported media format',
+        'reason_incorrect_path' => 'Incorrect file path',
+        'reason_server_unreachable' => 'Server cannot access the file',
+        'auto_play' => 'Auto Play',
+        'auto_play_enabled' => 'Auto play enabled',
+        'auto_play_disabled' => 'Auto play disabled',
+        'play'        => 'Play',
+        'file_path'  => 'Path:',
+        'media_info' => 'Media Info',
+        'system_status' => 'System Status',
+        'cpu_usage' => 'CPU Usage',
+        'memory_usage' => 'Memory Usage',
+        'openwrt_version' => 'OpenWrt Version',
+        'kernel_version' => 'Kernel Version',
+        'board_model' => 'Board Model',
+        'system_time' => 'System Time',
+        'load_average' => 'Load Average',
+        'uptime' => 'Uptime',
+        'system_monitoring' => 'System Monitoring',
+        'cpu_temperature' => 'CPU Temperature',
+        'running_processes' => 'Running Processes',
+        'cpu_frequency' => 'CPU Frequency',
+        'network_speed' => 'Network Speed',
+        'cores' => 'cores',
+        'uptime_days'   => 'days',
+        'uptime_hours' => 'hours',
+        'minutes'      => 'minutes',
+        'seconds'      => 'seconds',
+        'toggle_menu' => 'Collapse menu',
+        'expand_menu' => 'Expand menu',
         'validateYaml' => 'Validate YAML Syntax'
     ],
     'bn' => [
@@ -4641,6 +5325,63 @@ $langData = [
         'current_path' => 'বর্তমান পথ',
         'disk'         => 'ডিস্ক',
         'root'         => 'রুট ডিরেক্টরি',
+        'openwrt_media_center' => 'OpenWrt মিডিয়া সেন্টার',
+        'disk_usage' => 'ডিস্ক ব্যবহার',
+        'refresh' => 'রিফ্রেশ',
+        'fullscreen_play' => 'পূর্ণ স্ক্রিনে চালান',
+        'media_categories' => 'মিডিয়া বিভাগ',
+        'home' => 'হোম',
+        'recent_play' => 'সাম্প্রতিক প্লে',
+        'system_status' => 'সিস্টেম অবস্থা',
+        'disk_usage_colon' => 'ডিস্ক ব্যবহার:',
+        'free_space' => 'খালি জায়গা:',
+        'welcome_to_media_center' => 'মিডিয়া সেন্টারে স্বাগতম',
+        'media_statistics' => 'মিডিয়া পরিসংখ্যান',
+        'music_files' => 'সংগীত ফাইল',
+        'video_files' => 'ভিডিও ফাইল',
+        'image_files' => 'ছবি ফাইল',
+        'total_files' => 'মোট ফাইল',
+        'quick_actions' => 'দ্রুত কার্যক্রম',
+        'browse_music' => 'সংগীত ব্রাউজ করুন',
+        'browse_video' => 'ভিডিও ব্রাউজ করুন',
+        'browse_images' => 'ছবি ব্রাউজ করুন',
+        'no_music_files_found' => 'কোনো সংগীত ফাইল পাওয়া যায়নি',
+        'no_video_files_found' => 'কোনো ভিডিও ফাইল পাওয়া যায়নি',
+        'no_image_files_found' => 'কোনো ছবি ফাইল পাওয়া যায়নি',
+        'no_playback_history' => 'কোনো প্লেব্যাক ইতিহাস নেই',
+        'media_player' => 'মিডিয়া প্লেয়ার',
+        'cannot_play_media' => 'মিডিয়া ফাইল চালানো যায়নি',
+        'possible_reasons' => 'সম্ভাব্য কারণ:',
+        'reason_unsupported_format' => 'অসমর্থিত ফাইল ফরম্যাট',
+        'reason_incorrect_path' => 'ভুল ফাইল পথ',
+        'reason_server_unreachable' => 'সার্ভার ফাইলে প্রবেশ করতে পারছে না',
+        'auto_play' => 'স্বয়ংক্রিয় চালনা',
+        'auto_play_enabled' => 'স্বয়ংক্রিয় চালনা চালু',
+        'auto_play_disabled' => 'স্বয়ংক্রিয় চালনা বন্ধ',
+        'play'        => 'প্লে',
+        'file_path'  => 'পথ:',
+        'media_info' => 'মিডিয়া তথ্য',
+        'system_status' => 'সিস্টেমের অবস্থা',
+        'cpu_usage' => 'CPU ব্যবহার',
+        'memory_usage' => 'মেমরি ব্যবহার',
+        'openwrt_version' => 'OpenWrt সংস্করণ',
+        'kernel_version' => 'কার্নেল সংস্করণ',
+        'board_model' => 'বোর্ড মডেল',
+        'system_time' => 'সিস্টেম সময়',
+        'load_average' => 'গড় লোড',
+        'uptime' => 'চলমান সময়',
+        'system_monitoring' => 'সিস্টেম পর্যবেক্ষণ',
+        'cpu_temperature' => 'CPU তাপমাত্রা',
+        'running_processes' => 'চলমান প্রক্রিয়া',
+        'cpu_frequency' => 'CPU ফ্রিকোয়েন্সি',
+        'network_speed' => 'নেটওয়ার্ক গতি',
+        'cores' => 'কোর',
+        'uptime_days'   => 'দিন',
+        'uptime_hours' => 'ঘণ্টা',
+        'minutes'      => 'মিনিট',
+        'seconds'      => 'সেকেন্ড',
+        'toggle_menu' => 'মেনু সংকুচিত করুন',
+        'expand_menu' => 'মেনু প্রসারিত করুন',
         'validateYaml' => 'YAML সিনট্যাক্স যাচাই করুন'
     ]
 ];
@@ -6088,4 +6829,372 @@ window.showLogMessage = (function() {
         }, 12000);
     };
 })();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+
+    const requiredElements = ['dateDisplay', 'timeDisplay', 'lunarDisplay'];
+    requiredElements.forEach(id => {
+        if (!document.getElementById(id)) {
+            console.error(`Element #${id} not found`);
+        }
+    });
+});
+
+function getLunar(date) {
+    const lunarInfo = [
+        0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+        0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+        0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
+        0x06566,0x0d4a0,0x0ea50,0x16a95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
+        0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
+        0x06ca0,0x0b550,0x15355,0x04da0,0x0a5d0,0x14573,0x052d0,0x0a9a8,0x0e950,0x06aa0,
+        0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
+        0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b5a0,0x195a6,
+        0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
+        0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x055c0,0x0ab60,0x096d5,0x092e0,
+        0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
+        0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
+        0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
+        0x05aa0,0x076a3,0x096d0,0x04bd7,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
+        0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0
+    ];
+
+    const defaultZodiacs = ['Monkey','Rooster','Dog','Pig','Rat','Ox','Tiger','Rabbit','Dragon','Snake','Horse','Goat'];
+    const defaultGan = ['Jia','Yi','Bing','Ding','Wu','Ji','Geng','Xin','Ren','Gui'];
+    const defaultZhi = ['Zi','Chou','Yin','Mao','Chen','Si','Wu','Wei','Shen','You','Xu','Hai'];
+    const defaultMonths = ['1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th'];
+    const defaultDays = ['1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th',
+        '11th','12th','13th','14th','15th','16th','17th','18th','19th','20th',
+        '21st','22nd','23rd','24th','25th','26th','27th','28th','29th','30th'];
+
+    const zodiacs = translations.zodiacs || defaultZodiacs;
+    const Gan = translations.heavenlyStems || defaultGan;
+    const Zhi = translations.earthlyBranches || defaultZhi;
+    const lunarMonths = translations.months || defaultMonths;
+    const lunarDays = translations.days || defaultDays;
+    const leapPrefix = translations.leap_prefix || 'Leap ';
+    const yearSuffix = translations.year_suffix || ' Year';
+    const monthSuffix = translations.month_suffix || ' Month';
+    const daySuffix = translations.day_suffix || '';
+
+    let year = date.getFullYear();
+    let month = date.getMonth();
+    let day = date.getDate();
+    
+    let i, leap=0, temp=0;
+    let baseDate = new Date(1900,0,31);
+    let offset = Math.floor((date - baseDate)/86400000);
+
+    for(i=1900; i<2100 && offset>0; i++) {
+        temp = getLunarYearDays(i);
+        offset -= temp;
+    }
+
+    if(offset<0) { 
+        offset += temp; 
+        i--; 
+    }
+
+    let lunarYear = i;
+    let leapMonth = getLeapMonth(lunarYear);
+    let isLeap = false;
+
+    for(i=1; i<13 && offset>0; i++) {
+        if(leapMonth>0 && i==(leapMonth+1) && !isLeap){
+            --i; 
+            isLeap = true; 
+            temp = getLeapMonthDays(lunarYear); 
+        } else {
+            temp = getMonthDays(lunarYear, i); 
+        }
+        
+        if(isLeap && i==(leapMonth+1)) isLeap = false;
+        offset -= temp;
+    }
+
+    if(offset==0 && leapMonth>0 && i==leapMonth+1) {
+        if(isLeap) { 
+            isLeap = false; 
+        } else { 
+            isLeap = true; 
+            --i; 
+        }
+    }
+
+    if(offset<0){
+        offset += temp;
+        --i;
+    }
+
+    let lunarMonth = i;
+    
+    if (lunarMonth < 1) {
+        lunarMonth = 1;
+    }
+    if (lunarMonth > 12) {
+        lunarMonth = 12;
+    }
+
+    if (isLeap && leapMonth !== lunarMonth) {
+        isLeap = false;
+    }
+
+    let lunarDay = offset + 1;
+
+    const zodiac = zodiacs[lunarYear % 12];
+    const monthName = (isLeap ? leapPrefix : '') + lunarMonths[lunarMonth-1] + monthSuffix;
+    const dayName = lunarDays[lunarDay-1];
+    const ganZhiYear = Gan[(lunarYear - 4) % 10] + Zhi[(lunarYear - 4) % 12];
+
+    return {
+        zodiac: zodiac,
+        year: ganZhiYear + yearSuffix,
+        month: monthName,
+        day: dayName
+    };
+
+    function getLunarYearDays(year) {
+        let sum = 348;
+        for(let i=0x8000; i>0x8; i>>=1) {
+            sum += (lunarInfo[year-1900] & i) ? 1 : 0;
+        }
+        return sum + getLeapMonthDays(year);
+    }
+
+    function getLeapMonth(year) {
+        return lunarInfo[year-1900] & 0xf;
+    }
+
+    function getLeapMonthDays(year) {
+        return getLeapMonth(year) ? ((lunarInfo[year-1900] & 0x10000) ? 30 : 29) : 0;
+    }
+
+    function getMonthDays(year, month) {
+        return (lunarInfo[year-1900] & (0x10000 >> month)) ? 30 : 29;
+    }
+}
+
+function updateDateTime() {
+    try {
+        const now = new Date();
+        const lang = localStorage.getItem('language') || 'zh'; 
+        const translations = langData[lang] || langData['en']; 
+
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const ancientTime = getAncientTime(now, translations);
+        const weekDayIndex = now.getDay();
+        const weekDay = translations.weekDays ? translations.weekDays[weekDayIndex] : weekDayIndex;
+
+        const timeStr = [
+            now.getHours().toString().padStart(2, '0'),
+            now.getMinutes().toString().padStart(2, '0'),
+            now.getSeconds().toString().padStart(2, '0')
+        ].join(':');
+
+        const timeElement = document.getElementById('timeDisplay');
+        if (timeElement) {
+            if (['zh', 'hk', 'ja', 'ko'].includes(lang)) {
+                timeElement.innerHTML = `
+                    <span class="ancient-time">${ancientTime}</span>
+                    <span class="modern-time">${timeStr}</span>
+                `;
+            } else {
+                timeElement.textContent = timeStr;
+            }
+        }
+
+        if (minutes === 0 && now.getSeconds() === 0) {
+            if (lastAnnouncedHour !== hours) {
+                let announcement;
+                if (lang === 'zh' || lang === 'hk') {
+                    announcement = `${translations['hour_announcement'] || '??'}${hours}${translations['hour_exact'] || '??'}`;
+                } else {
+                    announcement = `${translations['hour_announcement_en'] || "It's"} ${hours} ${translations['hour_exact_en'] || "o'clock"}`;
+                }
+                speakMessage(announcement);
+                lastAnnouncedHour = hours;
+            }
+        } else if (minutes !== 0) {
+            lastAnnouncedHour = -1;  
+        }
+
+        const dateElement = document.getElementById('dateDisplay');
+        if (dateElement) {
+            let dateStr;
+            switch(lang) {
+                case 'zh':
+                case 'hk':
+                    dateStr = `${now.getFullYear()}${translations.labels.year}${now.getMonth()+1}${translations.labels.month}${now.getDate()}${translations.labels.day}`;
+                    break;
+                case 'vi':
+                    dateStr = `${translations.labels.day} ${now.getDate()} ${translations.labels.month} ${now.getMonth()+1} ${translations.labels.year} ${now.getFullYear()}`;
+                    break;
+                case 'ko':
+                    dateStr = `${now.getFullYear()}${translations.labels.year} ${now.getMonth()+1}${translations.labels.month} ${now.getDate()}${translations.labels.day}`;
+                    break;
+                case 'ja':
+                    dateStr = `${now.getFullYear()}${translations.labels.year}${now.getMonth()+1}${translations.labels.month}${now.getDate()}${translations.labels.day}`;
+                    break;
+                default:
+                    dateStr = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+            }
+            dateElement.textContent = dateStr;
+        }
+
+        const weekElement = document.getElementById('weekDisplay');
+        if (weekElement) {
+            if (['zh', 'hk', 'ko', 'ja'].includes(lang)) {
+                weekElement.textContent = `${translations.labels.week}${weekDay}`;
+            } else if (lang === 'vn') {
+                weekElement.textContent = '';
+            } else {
+                weekElement.textContent = weekDay;
+            }
+        }
+
+        const lunarElement = document.getElementById('lunarDisplay');
+        if (['zh', 'hk', 'ja', 'ko'].includes(lang) && lunarElement) {
+            const lunar = getLunar(now); 
+            lunarElement.textContent = (() => {
+                switch(lang) {
+                    case 'zh':
+                    case 'hk':
+                        return `${lunar.year} ${lunar.month}${lunar.day} ${lunar.zodiac}年`;
+                    case 'ja':
+                        return `${lunar.year} ${lunar.month}${lunar.day} ${lunar.zodiac}年`;
+                    case 'ko':
+                        return `${lunar.year} ${lunar.month}${lunar.day} ${lunar.zodiac}띠`;
+                    default: 
+                        return '';
+                }
+            })();
+        } else if (lunarElement) {
+            lunarElement.textContent = '';
+        }
+
+        if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
+            setTimeout(() => location.reload(), 1000);
+        }
+
+    } catch (error) {
+        showLogMessage(translations['error_loading_time'] || 'Error loading time');
+
+        const dateElement = document.getElementById('dateDisplay');
+        if (dateElement) {
+            dateElement.textContent = translations['error_loading_time'] || 'Error loading time';
+        }
+    }
+}
+
+function getAncientTime(date, translations) {
+    let hours = date.getHours();
+    let minutes = date.getMinutes();
+
+    hours += Math.floor(minutes / 60);
+    minutes = minutes % 60;
+    hours = hours % 24;
+    if (hours < 0) hours += 24;
+
+    const defaultPeriods = ['Zi', 'Chou', 'Yin', 'Mao', 'Chen', 'Si', 'Wu', 'Wei', 'Shen', 'You', 'Xu', 'Hai'];
+    const periodLabels = translations?.periods || defaultPeriods;
+
+    const periods = [
+        { start: 23, end: 1, name: periodLabels[0], overnight: true },
+        { start: 1, end: 3, name: periodLabels[1] },
+        { start: 3, end: 5, name: periodLabels[2] },
+        { start: 5, end: 7, name: periodLabels[3] },
+        { start: 7, end: 9, name: periodLabels[4] },
+        { start: 9, end: 11, name: periodLabels[5] },
+        { start: 11, end: 13, name: periodLabels[6] },
+        { start: 13, end: 15, name: periodLabels[7] },
+        { start: 15, end: 17, name: periodLabels[8] },
+        { start: 17, end: 19, name: periodLabels[9] },
+        { start: 19, end: 21, name: periodLabels[10] },
+        { start: 21, end: 23, name: periodLabels[11] }
+    ];
+
+    const match = periods.find(p => {
+        if (p.overnight) return hours >= p.start || hours < p.end;
+        return hours >= p.start && hours < p.end;
+    });
+
+    if (!match) return periodLabels[11];
+
+    let totalMinutes = date.getHours() * 60 + date.getMinutes();
+    let periodStartMinutes = match.start * 60;
+    let periodEndMinutes = match.end * 60;
+
+    if (match.overnight) {
+        if (hours < match.start) totalMinutes += 24 * 60; 
+        periodEndMinutes += 24 * 60;
+    }
+
+    const relativeMinutes = totalMinutes - periodStartMinutes;
+    const periodLength = periodEndMinutes - periodStartMinutes;
+    const stageDuration = periodLength / 3;
+
+    let sub;
+    if (relativeMinutes < stageDuration) {
+        sub = translations?.initial || 'Initial';
+    } else if (relativeMinutes < stageDuration * 2) {
+        sub = translations?.middle || 'Middle';
+    } else {
+        sub = translations?.final || 'Final';
+    }
+
+    return `${match.name}${sub}`; 
+}
+
+const elements = document.querySelectorAll('.time-display span');
+const currentSong = document.querySelector('#currentSong');
+const floatingCurrentSong = document.getElementById('floatingCurrentSong');
+
+let usedColors = [];
+
+function getColorListFromTheme() {
+    const styles = getComputedStyle(document.documentElement);
+    const lightness = styles.getPropertyValue('--l').trim();
+    const chroma = styles.getPropertyValue('--c').trim();
+
+    const colors = [];
+    for (let i = 1; i <= 7; i++) {
+        const hue = styles.getPropertyValue(`--base-hue-${i}`).trim();
+        const color = `oklch(${lightness} ${chroma} ${hue})`;
+        colors.push(color);
+    }
+    return colors;
+}
+
+function getNextColor(colorList) {
+    if (usedColors.length === colorList.length) {
+        usedColors = [];
+    }
+
+    const remaining = colorList.filter(c => !usedColors.includes(c));
+    const next = remaining[Math.floor(Math.random() * remaining.length)];
+    usedColors.push(next);
+    return next;
+}
+
+function rotateColors() {
+    const colorList = getColorListFromTheme();
+
+    elements.forEach(el => {
+        el.style.color = getNextColor(colorList);
+    });
+
+    if (currentSong) {
+        currentSong.style.color = getNextColor(colorList);
+    }
+
+    if (floatingCurrentSong) {
+        floatingCurrentSong.style.color = getNextColor(colorList);
+    }
+}
+setInterval(rotateColors, 4000);
 </script>
