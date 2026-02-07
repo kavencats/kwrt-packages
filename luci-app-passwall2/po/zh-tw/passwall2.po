@@ -181,8 +181,11 @@ msgstr "域名重寫"
 msgid "Direct DNS result write to IPSet"
 msgstr "直連 DNS 解析結果寫入到 IPSet"
 
-msgid "Perform the matching direct domain name rules into IP to IPSet/NFTSet, and then connect directly (not entering the core). Maybe conflict with some special circumstances."
-msgstr "將匹配到的直連規則的域名解析IP寫入到 IPSet/NFTSet，然後直連（不進入內核）。可能和某些特殊情況衝突。"
+msgid "Perform the matching direct domain name rules into IP to IPSet/NFTSet, and then connect directly (not entering the core)."
+msgstr "將匹配到的直連規則的網域解析IP寫入到 IPSet/NFTSet，然後直連（不進入核心）。"
+
+msgid "Maybe conflict with some special circumstances."
+msgstr "可能和某些特殊情況衝突。"
 
 msgid "DNS Redirect"
 msgstr "DNS 重定向"
@@ -913,11 +916,11 @@ msgstr "Geo 资源文件目錄"
 msgid "This variable specifies a directory where geoip.dat and geosite.dat files are."
 msgstr "此變量指定geoip.dat和geosite.dat文件所在的目錄。"
 
-msgid "Enable Geo Data Parsing"
-msgstr "開啟 Geo 數据解析"
+msgid "Enable GeoIP Data Parsing"
+msgstr "開啟 GeoIP 數据解析"
 
-msgid "Analyzes and preloads GeoIP/Geosite data to enhance the shunt performance of Sing-box/Xray."
-msgstr "分析和预加载 GeoIP/Geosite 數据，以增強 Sing-box/Xray 的分流效果。"
+msgid "Analyzes and preloads GeoIP data to enhance the shunt performance."
+msgstr "分析和预加载 GeoIP 數据，以增強分流效果。"
 
 msgid "Note: Increases resource usage."
 msgstr "注：会增加一些系統资源的開销。"
@@ -1621,6 +1624,12 @@ msgstr "TLS 憑證鏈指紋（SHA256）"
 msgid "Once set, connects only when the server’s chain fingerprint matches."
 msgstr "設定後，僅在伺服器憑證鏈指紋匹配時連接。"
 
+msgid "TLS Certificate Name (CertName)"
+msgstr "TLS 憑證名稱（CertName）"
+
+msgid "TLS is used to verify the leaf certificate name."
+msgstr "TLS 用於驗證 leaf 憑證的 name。"
+
 msgid "ECH Config"
 msgstr "ECH 配置"
 
@@ -1713,11 +1722,9 @@ msgstr "仅支持一層代理。"
 
 msgid ""
 "Chained proxy works only with Xray or Sing-box nodes.<br>"
-"The chained node must be the same type as your subscription node (Xray with Xray, Sing-box with Sing-box).<br>"
 "You can only use manual or imported nodes as chained nodes."
 msgstr ""
 "鏈式代理仅支持 Xray 与 Sing-box 節點。<br>"
-"鏈式節點需与訂閱節點類型一致（Xray 對應 Xray，Sing-box 對應 Sing-box）。<br>"
 "仅支持手動添加或導入的節點用作鏈式節點。"
 
 msgid "Set the default domain resolution strategy for the sing-box node."
