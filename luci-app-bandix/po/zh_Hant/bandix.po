@@ -767,6 +767,18 @@ msgstr "DNS最大记录數"
 msgid "Set the maximum number of DNS query records to keep. Older records will be deleted when this limit is exceeded"
 msgstr "設定DNS查詢記錄的最大儲存數量，超過此數量将刪除最舊的记录"
 
+msgid "Persist DNS Data"
+msgstr "持久化DNS數據"
+
+msgid "Enable DNS data persistence functionality, data will only be persisted to disk when this option is enabled"
+msgstr "啟用DNS數據持久化功能，只有啟用此選項後才會持久化到磁碟"
+
+msgid "DNS Data Flush Interval"
+msgstr "DNS數據 flush 間隔"
+
+msgid "Set the interval for flushing DNS data to disk"
+msgstr "設定DNS數據寫入磁碟的時間間隔"
+
 msgid "Persist History Data"
 msgstr "持久化歷史數据"
 
@@ -1061,8 +1073,8 @@ msgstr "手動下載"
 msgid "Close"
 msgstr "關閉"
 
-msgid "Starting installation... The page will refresh automatically in 5 seconds."
-msgstr "開始安裝... 頁面將在5秒後自動重新整理。"
+msgid "Starting installation... The page will refresh automatically in 30 seconds."
+msgstr "開始安裝... 頁面將在30秒後自動重新整理。"
 
 msgid "Please clear your browser cache manually after updating."
 msgstr "更新後請手動清空瀏覽器快取。"

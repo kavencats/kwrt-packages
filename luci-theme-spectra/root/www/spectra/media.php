@@ -1,3682 +1,3435 @@
 <?php
-ini_set('memory_limit', '512M');
-$RECENT_MAX = 15;
-$ROOT_DIR = '/';
-$EXCLUDE_DIRS = [
-    '/proc', '/sys', '/dev', '/tmp', '/run', '/rom',
-    '/var/lock', '/var/run', '/overlay/upper'
-];
+ini_set('memory_limit', '256M');
+$base_dir = __DIR__;
+$upload_dir = $base_dir . '/stream';
+$allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mkv', 'mp3', 'wav', 'flac', 'ogg'];
+$background_type = '';
+$background_src = '';
+$lang = $_POST['lang'] ?? $_GET['lang'] ?? 'en';
+$lang = isset($langData[$lang]) ? $lang : 'en';
 
-$TYPE_EXT = [
-    'music'  => ['mp3', 'ogg', 'wav', 'flac', 'm4a', 'aac'],
-    'video'  => ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'],
-    'image'  => ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
-];
-
-if (isset($_GET['preview']) && $_GET['preview'] == '1' && isset($_GET['path'])) {
-    $filePath = urldecode($_GET['path']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['upload_file'])) {
+    $files = $_FILES['upload_file'];
+    $upload_errors = [];
     
-    $filePath = preg_replace('#/+#', '/', $filePath);
-    if (substr($filePath, 0, 1) !== '/') {
-        $filePath = '/' . $filePath;
-    }
-    
-    $realPath = realpath($filePath);
-    if (!$realPath || strpos($realPath, $ROOT_DIR) !== 0) {
-        http_response_code(403);
-        header('Content-Type: text/plain');
-        exit('Access Denied: Invalid path');
-    }
-    
-    foreach ($EXCLUDE_DIRS as $exclude) {
-        if (strpos($realPath, $exclude) === 0) {
-            http_response_code(403);
-            header('Content-Type: text/plain');
-            exit('Access Denied: Path is excluded');
-        }
-    }
-    
-    if (file_exists($realPath) && is_readable($realPath)) {
-        $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
-        $mimeMap = [
-            'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'svg' => 'image/svg+xml',
-            'png' => 'image/png', 'gif' => 'image/gif', 'svgz' => 'image/svg+xml',
-            'bmp' => 'image/bmp', 'webp' => 'image/webp',
-            'mp3' => 'audio/mpeg', 'wav' => 'audio/wav',
-            'ogg' => 'audio/ogg', 'flac' => 'audio/flac',
-            'm4a' => 'audio/mp4', 'aac' => 'audio/aac',
-            'mp4' => 'video/mp4', 'avi' => 'video/x-msvideo',
-            'mkv' => 'video/x-matroska', 'mov' => 'video/quicktime',
-            'wmv' => 'video/x-ms-wmv', 'flv' => 'video/x-flv',
-            'webm' => 'video/webm'
-        ];
-        
-        $mimeType = $mimeMap[$ext] ?? 'application/octet-stream';
-        
-        header('Content-Type: ' . $mimeType);
-        header('Content-Length: ' . filesize($realPath));
-        header('Cache-Control: max-age=3600');
-        readfile($realPath);
-        exit;
-    } else {
-        http_response_code(404);
-        header('Content-Type: text/plain');
-        exit('File not found or not readable: ' . $filePath);
-    }
-}
-
-function getCpuUsageSimple() {
-    if (!is_readable('/proc/stat')) {
-        return 0;
-    }
-    
-    $content1 = @file_get_contents('/proc/stat');
-    if ($content1 === false) {
-        return 0;
-    }
-    
-    $lines1 = explode("\n", $content1);
-    if (empty($lines1[0])) {
-        return 0;
-    }
-    
-    if (function_exists('time_nanosleep')) {
-        time_nanosleep(0, 100000000);
-    } else {
-        $start = microtime(true);
-        while (microtime(true) - $start < 0.1) {
-        }
-    }
-    
-    $content2 = @file_get_contents('/proc/stat');
-    if ($content2 === false) {
-        return 0;
-    }
-    
-    $lines2 = explode("\n", $content2);
-    if (empty($lines2[0])) {
-        return 0;
-    }
-    
-    $cpu1 = preg_split('/\s+/', trim($lines1[0]));
-    $cpu2 = preg_split('/\s+/', trim($lines2[0]));
-    
-    if (count($cpu1) < 5 || count($cpu2) < 5) {
-        return 0;
-    }
-    
-    $total1 = intval($cpu1[1]) + intval($cpu1[2]) + intval($cpu1[3]) + intval($cpu1[4]);
-    $idle1 = intval($cpu1[4]);
-    
-    $total2 = intval($cpu2[1]) + intval($cpu2[2]) + intval($cpu2[3]) + intval($cpu2[4]);
-    $idle2 = intval($cpu2[4]);
-    
-    $totalDiff = $total2 - $total1;
-    $idleDiff = $idle2 - $idle1;
-    
-    if ($totalDiff > 0) {
-        $usage = (($totalDiff - $idleDiff) / $totalDiff) * 100;
-        return round($usage, 1);
-    }
-    
-    return 0;
-}
-
-if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
-    header('Content-Type: application/json');
-
-    $dt = json_decode(shell_exec("ubus call system board"), true);
-    $devices = $dt['model'] ?? 'Unknown';
-    
-    $cpuUsage = getCpuUsageSimple();
-
-    $tmpramTotal = exec("cat /proc/meminfo | grep MemTotal | awk '{print \$2}'");
-    $tmpramAvailable = exec("cat /proc/meminfo | grep MemAvailable | awk '{print \$2}'");
-    
-    $tmpramTotal = intval($tmpramTotal);
-    $tmpramAvailable = intval($tmpramAvailable);
-    
-    $ramTotal = number_format(($tmpramTotal / 1024), 1);
-    $ramAvailable = number_format(($tmpramAvailable / 1024), 1);
-    $ramUsage = number_format((($tmpramTotal - $tmpramAvailable) / 1024), 1);
-    $memUsage = $tmpramTotal > 0 ? round((($tmpramTotal - $tmpramAvailable) / $tmpramTotal) * 100, 1) : 0;
-    
-    $raw_uptime = exec("cat /proc/uptime | awk '{print \$1}'");
-    $days = floor($raw_uptime / 86400);
-    $hours = floor(($raw_uptime / 3600) % 24);
-    $minutes = floor(($raw_uptime / 60) % 60);
-    $seconds = floor($raw_uptime % 60);
-    $uptimeText = "{$days} days {$hours} hours {$minutes} minutes {$seconds} seconds";
-    
-    $cpuLoad = shell_exec("cat /proc/loadavg");
-    $cpuLoad = explode(' ', $cpuLoad);
-    $cpuLoadAvg1Min = round($cpuLoad[0], 2);
-    $cpuLoadAvg5Min = round($cpuLoad[1], 2);
-    $cpuLoadAvg15Min = round($cpuLoad[2], 2);
-    
-    $timezone = trim(shell_exec("uci get system.@system[0].zonename 2>/dev/null"));
-    if (!$timezone) {
-        $timezone = trim(shell_exec("cat /etc/TZ 2>/dev/null"));
-        if (!$timezone) {
-            $timezone = 'UTC';
-        }
-    }
-    date_default_timezone_set($timezone);
-    $currentTime = date("Y-m-d H:i:s");
-    
-    $cpuTemp = '--';
-    $tempFiles = [
-        '/sys/class/thermal/thermal_zone0/temp',
-        '/sys/devices/virtual/thermal/thermal_zone0/temp'
-    ];
-    foreach ($tempFiles as $tempFile) {
-        if (file_exists($tempFile)) {
-            $temp = intval(file_get_contents($tempFile));
-            if ($temp > 0) {
-                $cpuTemp = $temp > 1000 ? round($temp / 1000, 1) : round($temp, 1);
-                break;
-            }
-        }
-    }
-    
-    $cpuCores = exec("grep -c '^processor' /proc/cpuinfo");
-    $cpuCores = intval($cpuCores) ?: 1;
-    
-    $cpuFreq = '--';
-    $freqFiles = [
-        '/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq',
-        '/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq',
-        '/proc/cpuinfo'
-    ];
-    
-    foreach ($freqFiles as $freqFile) {
-        if (file_exists($freqFile)) {
-            if ($freqFile === '/proc/cpuinfo') {
-                $freqContent = file_get_contents($freqFile);
-                if (preg_match('/cpu MHz\s*:\s*([\d.]+)/', $freqContent, $matches)) {
-                    $freq = floatval($matches[1]);
-                    $cpuFreq = round($freq, 0) . ' MHz';
-                    break;
-                }
-            } else {
-                $freqContent = file_get_contents($freqFile);
-                if ($freqContent !== false) {
-                    $freq = intval(trim($freqContent));
-                    if ($freq > 0) {
-                        if ($freq > 1000) {
-                            $cpuFreq = round($freq / 1000, 1) . ' GHz';
-                        } else {
-                            $cpuFreq = $freq . ' MHz';
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    
-    $processCount = intval(shell_exec("ps | wc -l")) - 1;
-    
-    $networkRx = 0;
-    $networkTx = 0;
-    
-    $netStat = @file('/proc/net/dev');
-    if ($netStat) {
-        $interfaces = ['br-lan', 'eth0', 'eth1', 'wlan0', 'wlan1'];
-        
-        foreach ($netStat as $line) {
-            if (strpos($line, ':') === false) continue;
+    foreach ($files['name'] as $key => $filename) {
+        if ($files['error'][$key] === UPLOAD_ERR_OK) {
+            $raw_filename = urldecode($filename);
             
-            foreach ($interfaces as $interface) {
-                $pattern = '/^\s*' . $interface . ':\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+)/';
-                if (preg_match($pattern, $line, $matches)) {
-                    $networkRx = intval($matches[1]);
-                    $networkTx = intval($matches[2]);
-                    break 2;
-                }
-            }
-        }
-    }
-    
-    if ($networkRx == 0 && $networkTx == 0 && $netStat) {
-        foreach ($netStat as $line) {
-            if (strpos($line, ':') !== false && !preg_match('/^\s*lo:/', $line)) {
-                if (preg_match('/^\s*(\w+):\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+)/', $line, $matches)) {
-                    $networkRx = intval($matches[2]);
-                    $networkTx = intval($matches[3]);
-                    break;
-                }
-            }
-        }
-    }
-    
-    $diskInfo = disk_free_space('/') !== false ? [
-        'total' => disk_total_space('/'),
-        'free' => disk_free_space('/'),
-        'used' => disk_total_space('/') - disk_free_space('/')
-    ] : null;
-    
-    $diskUsage = $diskInfo ? round(($diskInfo['used'] / $diskInfo['total']) * 100, 1) : 0;
-    $diskTotal = $diskInfo ? round($diskInfo['total'] / (1024*1024*1024), 2) : 0;
-    $diskUsed = $diskInfo ? round($diskInfo['used'] / (1024*1024*1024), 2) : 0;
-
-    $openwrtVersion = trim(shell_exec("cat /etc/openwrt_release | grep 'DISTRIB_DESCRIPTION' | cut -d'=' -f2 | sed \"s/['\\\"]//g\""));
-    if (!$openwrtVersion) {
-        $openwrtVersion = trim(shell_exec("cat /etc/openwrt_release | grep 'DISTRIB_DESCRIPTION' | awk -F\"='\" '{print \$2}' | sed \"s/'//g\""));
-    }
-    if (!$openwrtVersion) {
-        $openwrtVersion = $dt['release']['distribution'] . ' ' . $dt['release']['version'] ?? 'Unknown';
-    }
-    
-    $kernelVersion = trim(shell_exec("uname -r"));
-    if (!$kernelVersion) {
-        $kernelVersion = trim(shell_exec("cat /proc/version | awk '{print \$3}'"));
-    }
-    
-    $boardInfo = json_decode(shell_exec("ubus call system board"), true);
-    $boardModel = $boardInfo['model'] ?? 'Unknown';
-    
-    echo json_encode([
-        'success' => true,
-        'cpu_usage' => $cpuUsage,
-        'mem_usage' => $memUsage,
-        'mem_total' => $ramTotal,
-        'mem_used' => $ramUsage,
-        'mem_free' => $ramAvailable,
-        'cpu_temp' => $cpuTemp,
-        'process_count' => $processCount,
-        'cpu_cores' => $cpuCores,
-        'cpu_freq' => $cpuFreq,
-        'network_rx' => $networkRx,
-        'network_tx' => $networkTx,
-        'load_avg' => "$cpuLoadAvg1Min, $cpuLoadAvg5Min, $cpuLoadAvg15Min",
-        'uptime' => $uptimeText,
-        'system_time' => $currentTime,
-        'timezone' => $timezone,
-        'disk_usage' => $diskUsage,
-        'disk_total' => $diskTotal,
-        'disk_used' => $diskUsed,
-        'openwrt_version' => $openwrtVersion,
-        'kernel_version' => $kernelVersion,
-        'board_model' => $boardModel
-    ]);
-    exit;
-}
-
-function getDiskInfo($path = '/') {
-    $freeSpace = @disk_free_space($path);
-    $totalSpace = @disk_total_space($path);
-    
-    if ($freeSpace === false || $totalSpace === false) {
-        return null;
-    }
-    
-    $usedSpace = $totalSpace - $freeSpace;
-    $usedPercent = $totalSpace > 0 ? round(($usedSpace / $totalSpace) * 100, 1) : 0;
-    
-    $free_mb = round($freeSpace / (1024*1024), 1);
-    $total_mb = round($totalSpace / (1024*1024), 1);
-    $used_mb = round($usedSpace / (1024*1024), 1);
-    
-    return [
-        'free' => $freeSpace,
-        'total' => $totalSpace,
-        'used' => $usedSpace,
-        'used_percent' => $usedPercent,
-        'free_mb' => $free_mb,
-        'total_mb' => $total_mb,
-        'used_mb' => $used_mb
-    ];
-}
-
-function scanDirectory($path, $maxDepth = 5) {
-    global $EXCLUDE_DIRS;
-    $files = [];
-    $seenFiles = [];
-    
-    if (!is_dir($path) || !is_readable($path)) {
-        return $files;
-    }
-    
-    $path = preg_replace('#/+#', '/', $path);
-    
-    foreach ($EXCLUDE_DIRS as $exclude) {
-        if (strpos($path, $exclude) === 0) {
-            return $files;
-        }
-    }
-    
-    try {
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::SELF_FIRST,
-            RecursiveIteratorIterator::CATCH_GET_CHILD
-        );
-        
-        foreach ($iterator as $file) {
-            if ($iterator->getDepth() > $maxDepth) {
-                $iterator->next();
+            $ext = strtolower(pathinfo($raw_filename, PATHINFO_EXTENSION));
+            if (!in_array($ext, $allowed_types)) {
+                $upload_errors[] = sprintf($langData[$lang]['upload_error_type_not_supported'] ?? 'Unsupported file type: %s', $raw_filename);
                 continue;
             }
             
-            if ($file->isFile() && $file->isReadable()) {
-                $filePath = $file->getPathname();
-                $realPath = realpath($filePath);
-                
-                if (!$realPath) continue;
-                
-                $excluded = false;
-                foreach ($EXCLUDE_DIRS as $exclude) {
-                    if (strpos($realPath, $exclude) === 0) {
-                        $excluded = true;
-                        break;
-                    }
-                }
-                
-                if ($excluded) continue;
-
-                $fileName = $file->getFilename();
-                $fileSize = $file->getSize();
-                $fileKey = $fileName . '_' . $fileSize;
-                
-                if (isset($seenFiles[$fileKey])) {
-                    continue;
-                }
-                
-                $seenFiles[$fileKey] = true;
-                
-                $files[] = [
-                    'path' => $realPath,
-                    'name' => $file->getFilename(),
-                    'size' => $file->getSize(),
-                    'mtime' => $file->getMTime(),
-                    'ext' => strtolower($file->getExtension()),
-                    'safe_path' => htmlspecialchars($realPath, ENT_QUOTES, 'UTF-8'),
-                    'safe_name' => htmlspecialchars($file->getFilename(), ENT_QUOTES, 'UTF-8')
-                ];
+            $basename = pathinfo($raw_filename, PATHINFO_FILENAME);
+            
+            $safe_basename = preg_replace([
+                '/[^\p{L}\p{N}_\- ]/u',
+                '/\s+/',
+                '/_+/',
+                '/-+/'
+            ], [
+                '_',
+                '_',
+                '_',
+                '-'
+            ], $basename);
+            
+            $safe_basename = trim($safe_basename, '_.- ');
+            
+            if (empty($safe_basename)) {
+                $safe_basename = uniqid();
+            }
+            
+            $counter = 1;
+            $final_name = "{$safe_basename}.{$ext}";
+            $target_path = "{$upload_dir}/{$final_name}";
+            while (file_exists($target_path)) {
+                $final_name = "{$safe_basename}_{$counter}.{$ext}";
+                $target_path = "{$upload_dir}/{$final_name}";
+                $counter++;
+            }
+            
+            if (!move_uploaded_file($files['tmp_name'][$key], $target_path)) {
+                $upload_errors[] = sprintf($langData[$lang]['upload_error_move_failed'] ?? 'Upload failed: %s', $final_name);
             }
         }
-    } catch (Exception $e) {
     }
     
-    return $files;
-}
-
-function formatFileSize($bytes) {
-    if ($bytes == 0) return "0 B";
-    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    $i = floor(log($bytes, 1024));
-    return round($bytes / pow(1024, $i), 2) . ' ' . $units[$i];
-}
-
-function getVideoThumbnail($videoPath) {
-    return "?thumbnail=1&path=" . urlencode($videoPath);
-}
-
-$media = ['music' => [], 'video' => [], 'image' => []];
-$files = scanDirectory($ROOT_DIR);
-
-foreach ($files as $file) {
-    $ext = $file['ext'];
-    foreach ($TYPE_EXT as $type => $exts) {
-        if (in_array($ext, $exts)) {
-            $media[$type][] = $file;
-            break;
-        }
+    if (!empty($upload_errors)) {
+        $error_message = urlencode(implode("\n", $upload_errors));
+        header("Location: " . $_SERVER['PHP_SELF'] . "?error=" . $error_message);
+        exit;
     }
 }
 
-foreach ($media as &$files) {
-    usort($files, function($a, $b) {
-        return $b['mtime'] - $a['mtime'];
-    });
+if (isset($_GET['delete'])) {
+    $file = $upload_dir . '/' . basename($_GET['delete']);
+    if (file_exists($file)) {
+        unlink($file);
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit;
+    }
 }
 
-$diskInfo = getDiskInfo('/');
-$recent = isset($_COOKIE['recent_media']) ? json_decode($_COOKIE['recent_media'], true) : [];
-$systemInfo = [
-    'cpu_usage' => 0,
-    'mem_usage' => 0,
-    'mem_total' => 0,
-    'mem_used' => 0,
-    'mem_free' => 0,
-    'uptime' => '',
-    'load_avg' => '',
-    'system_time' => date('Y-m-d H:i:s'),
-    'timezone' => 'UTC'
-];
+if (isset($_POST['rename'])) {
+    $oldName = $_POST['old_name'];
+    $newName = trim($_POST['new_name']);
+
+    $oldPath = $upload_dir . DIRECTORY_SEPARATOR . basename($oldName);
+    $newPath = $upload_dir . DIRECTORY_SEPARATOR . basename($newName);
+
+    $error = '';
+    if (!file_exists($oldPath)) {
+        $error = 'Original file does not exist';
+    } elseif ($newName === '') {
+        $error = 'File name cannot be empty';
+    } elseif (preg_match('/[\\\\\/:*?"<>|]/', $newName)) {
+        $error = 'Contains invalid characters: \/:*?"<>|';
+    } elseif (file_exists($newPath)) {
+        $error = 'Target file already exists';
+    }
+
+    if (!$error) {
+        if (rename($oldPath, $newPath)) {
+            header("Location: " . $_SERVER['REQUEST_URI']);
+            exit();
+        } else {
+            $error = 'Operation failed (permissions/character issues)';
+        }
+    }
+
+    if ($error) {
+        echo '<div class="alert alert-danger mb-3">Error: ' 
+             . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') 
+             . '</div>';
+    }
+}
+
+if (isset($_GET['download'])) {
+    $file = $_GET['download'];
+    $filePath = $upload_dir . '/' . $file;
+
+    if (file_exists($filePath)) {
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . basename($filePath) . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($filePath));
+        readfile($filePath);
+        exit;
+    } else {
+        $error = "File not found: " . htmlspecialchars($file);
+    }
+}
+
+if (isset($_POST['batch_delete'])) {
+    $deleted_files = [];
+    foreach ($_POST['filenames'] as $filename) {
+        $file = $upload_dir . '/' . basename($filename);
+        if (file_exists($file)) {
+            unlink($file);
+            $deleted_files[] = $filename;
+        }
+    }
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'deleted_files' => $deleted_files]);
+    exit;
+}
+
+$files = array_diff(scandir($upload_dir), ['..', '.', '.htaccess', 'index.php']);
+$files = array_filter($files, function ($file) use ($upload_dir) {
+    $ext = pathinfo($file, PATHINFO_EXTENSION);
+    return !in_array(strtolower($ext), ['php', 'txt', 'json']) && basename($file) !== 'shares' && !is_dir($upload_dir . DIRECTORY_SEPARATOR . $file);
+});
+
+if (isset($_GET['background'])) {
+    $background_src = 'stream/' . htmlspecialchars($_GET['background']);
+    $ext = strtolower(pathinfo($background_src, PATHINFO_EXTENSION));
+    if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+        $background_type = 'image';
+    } elseif (in_array($ext, ['mp4', 'webm', 'mkv'])) {
+        $background_type = 'video';
+    }
+}
+?>
+
+<?php
+if (!empty($_GET['error'])) {
+    echo '<div class="alert alert-danger mt-3 mx-3" role="alert" id="log-message">';
+    echo nl2br(htmlspecialchars(urldecode($_GET['error'])));
+    echo '</div>';
+}
 ?>
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-translate="openwrt_media_center">OpenWrt Media Center</title>
+    <meta charset="utf-8">
+    <title>Media File Management</title>
     <?php include './spectra.php'; ?>
-</head>
+    <script>
+        const phpBackgroundType = '<?= $background_type ?>';
+        const phpBackgroundSrc = '<?= $background_src ?>';
+    </script>
+
+    <style>
+      #mainContainer { display: none; }
+    </style>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        try {
+            const container = document.getElementById('mainContainer');
+              if (!container) return;
+
+              const isFullscreen = localStorage.getItem('fullscreenState') === 'true';
+        
+              container.classList.toggle('container-fluid', isFullscreen);
+              container.classList.toggle('container-sm', !isFullscreen);
+
+              container.style.display = 'block';
+        
+              const toggleBtn = document.getElementById('toggleScreenBtn');
+              if (toggleBtn) {
+                  const icon = toggleBtn.querySelector('i');
+                  icon.className = isFullscreen ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen';
+              }
+
+              toggleBtn.addEventListener('click', function() {
+                  const isNowFullscreen = container.classList.contains('container-fluid');
+                  const icon = this.querySelector('i');
+            
+                  container.classList.toggle('container-fluid', !isNowFullscreen);
+                  container.classList.toggle('container-sm', isNowFullscreen);
+            
+                  icon.className = isNowFullscreen ? 'bi-arrows-fullscreen' : 'bi-fullscreen-exit';
+                  localStorage.setItem('fullscreenState', !isNowFullscreen);
+              });
+
+          } catch (error) {
+              const container = document.getElementById('mainContainer');
+              if (container) container.style.display = 'block';
+          }
+      });
+    </script>
 
 <style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
+html,
 body {
-    font-family: var(--font-family, -apple-system, BlinkMacSystemFont, sans-serif);
-    background: var(-bg-container) !important;
+        color: var(--text-primary);
+        -webkit-backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        font-family: 'Fredoka One', cursive;
+        font-weight: 400; 
+        background: inherit !important;
+        font-family: var(--font-family, -apple-system, BlinkMacSystemFont, sans-serif);
+}
+
+.container-bg,
+.card,
+.modal-content,
+.table {
+        --bg-l: oklch(30% 0 0); 
+        color: oklch(calc(100% - var(--bg-l)) 0 0);
+}
+
+.container-bg {
+        padding: 20px;
+	border-radius: 10px;
+	background: var(--bg-container);
+        margin-top: 15px !important;
+        box-shadow: 1px 0 3px -2px color-mix(in oklch, var(--bg-container), black 30%) !important;
+}
+
+.time-display {
+	font-size: 1.4rem !important;
+	color: var(--text-primary);
+	padding: 6px 12px !important;
+	display: flex !important;
+	align-items: center !important;
+	flex-wrap: wrap !important;
+	gap: 8px !important;
+}
+
+.week-display {
+	color: var(--text-secondary);
+	margin-left: 6px !important;
+}
+
+.lunar-text {
+	color: var(--text-secondary);
+}
+
+#timeDisplay {
+	font-weight: 500 !important;
+	color: var(--accent-color);
+	margin-left: auto !important;
+}
+
+.modern-time {
+	font-weight: 500 !important;
+}
+
+.ancient-time {
+	margin-left: 4px !important;
+	letter-spacing: 1px !important;
+}
+
+.card {
+	background: var(--card-bg);
+	border: 1px solid var(--border-color);
+        border-radius: 1rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        overflow: hidden;
+
+}
+
+.card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.card img,
+.card video {
+        border-top-left-radius: 1rem;
+        border-top-right-radius: 1rem;
+}
+
+.card-header {
+	background: var(--card-bg) !important;
+	border-bottom: 1px solid var(--card-bg);
+}
+
+.table {
+	--bs-table-bg: var(--card-bg);
+	--bs-table-color: var(--text-primary);
+	--bs-table-border-color: var(--border-color);
+	--bs-table-striped-bg: rgba(0, 0, 0, 0.05);
+}
+
+.btn {
+	border-radius: 8px;
+	font-weight: bold;
+	transition: transform 0.2s;
+}
+
+.btn:hover {
+	transform: scale(1.1);
+}
+
+.btn-primary {
+	background: var(--btn-primary-bg);
+	border: 1px solid var(--border-color);
+}
+
+.btn-info {
+	background-color: var(--btn-info-bg) !important;
+	color: white !important;
+	border: none !important; 
+
+	&:hover {
+		background-color: var(--btn-info-hover) !important;
+		color: white !important;
+	}
+}
+
+.btn-warning {
+	background-color: var(--btn-warning-bg) !important;
+	color: white !important;
+	border: none !important; 
+
+	&:hover {
+		background-color: var(--btn-warning-hover) !important;
+		color: white !important;
+	}
+}
+
+#status {
+	font-size: 22px;
+	color: var(--accent-color) !important;
+}
+
+h5,
+h2 {
+	color: var(--accent-color) !important;
+        font-weight: bold;
+}
+
+.img-thumbnail {
+	background: var(--bg-container);
+	border: 1px solid var(--border-color);
+}
+
+#toggleButton {
+        background-color: var(--sand-bg);
+
+}
+
+label {
+	color: var(--text-primary) !important;
+}
+
+label[for="selectAll"] {
+	margin-left: 8px;
+	vertical-align: middle;
+}
+
+.preview-container {
+	position: relative;
+	width: 100%;
+	height: 300px; 
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.file-info-overlay {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background: rgba(0,0,0,0.7);
+	color: white;
+	padding: 0.5rem;
+	transform: translateY(100%);
+	transition: 0.2s;
+	font-size: 0.8em;
+}
+
+.file-type-indicator {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	z-index: 2;
+	background: rgba(0,0,0,0.6);
+	padding: 4px 10px;
+	border-radius: 15px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	backdrop-filter: blur(2px);
+}
+
+.preview-container:hover .file-info-overlay {
+	transform: translateY(0);
+}
+
+.preview-img {
+    position: absolute;
+    min-width: 100%;
+    min-height: 100%;
+    object-fit: cover; 
+}
+
+.preview-container:hover .preview-img {
+	transform: scale(1.05);
+}
+
+.video-wrapper {
+	width: 100%;
+	height: 0;
+	padding-top: 56.25%;
+	position: relative;
+}
+
+.preview-video {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+        object-fit: cover; 
+}
+
+.preview-video:hover::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%,-50%);
+	width: 40px;
+	height: 40px;
+	background: rgba(255,255,255,0.8) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%23000000'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E") no-repeat center;
+	border-radius: 50%;
+	opacity: 0.8;
+	pointer-events: none;
+}
+
+.card:hover .preview-img {
+	transform: scale(1.03);
+}
+
+.fileCheckbox {
+	margin-right: 8px;
+	transform: scale(1.2);
+}
+
+#previewImage, #previewVideo {
+        max-width: 100%;
+        max-height: 100vh;
+        object-fit: contain;  
+}
+
+.card-body.pt-2.mt-2 .d-flex {
+        justify-content: center;
+}
+
+.card-body.pt-2.mt-2 .d-flex .btn {
+        margin: 0 5px; 
+}
+
+.d-flex {
+        white-space: nowrap;
+}
+
+#playlistContainer .list-group-item {
+	cursor: pointer;
+	transition: background-color 0.3s, transform 0.2s;
+	padding: 0.75rem 1rem;
+	word-wrap: break-word;
+	word-break: break-word;
+	overflow-wrap: break-word;
+	white-space: normal;
+	background-color: var(--card-bg);
+	color: var(--playlist-text);
+	border-left: var(--item-border);
+}
+
+#playlistContainer .list-group-item:hover {
+	background-color: var(--item-hover-bg) !important;
+	box-shadow: var(--item-hover-shadow);
+	transform: scale(1.02);
+	--playlist-text: oklch(100% 0 0); 
+	color: var(--playlist-text);
+}
+
+[data-theme="light"] #playlistContainer .list-group-item:hover {
+	--playlist-text: oklch(20% 0 0); 
+}
+
+#playlistContainer .badge {
+	width: 24px;
+	text-align: center;
+	font-weight: normal;
+	background-color: var(--btn-primary-bg);
+	color: var(--text-primary);
+}
+
+#playlistContainer .delete-item {
+	opacity: 0.6;
+	transition: opacity 0.3s;
+	color: var(--text-primary);
+}
+
+#playlistContainer .delete-item:hover {
+	opacity: 1;
+}
+
+#playlistContainer {
+	overflow-x: hidden;
+	overflow-y: auto;
+	background-color: var(--bg-container);
+}
+
+#playlistContainer .text-truncate {
+	display: inline-block;
+	width: 100%;
+	white-space: normal;
+	word-wrap: break-word;
+	word-break: break-word;
+	font-size: 1.1em;
+	line-height: 1.4;
+	color: var(--text-primary);
+}
+
+#playlistContainer .list-group-item {
+	padding: 1rem 1.5rem;
+	margin-bottom: 3px;
+	border-radius: 6px;
+	transition: all 0.3s ease;
+	background-color: var(--card-bg);
+	color: var(--text-primary);
+}
+
+#playlistContainer .list-group-item:nth-child(odd) {
+	background-color: var(--card-bg);
+	border-left: 3px solid var(--border-color);
+	color: var(--text-primary);
+}
+
+#playlistContainer .list-group-item:nth-child(even) {
+	background-color: var(--card-bg);
+	border-left: 3px solid var(--border-color);
+	color: var(--text-primary);
+}
+
+#playlistContainer .list-group-item.active {
+	background: var(--color-accent) !important;  
+	border-color: var(--color-accent);      
+	box-shadow: none;
+	z-index: 2;
+	color: var(--text-primary);
+}
+
+#playlistContainer .list-group-item:hover {
+	background-color: var(--color-accent);
+	transform: translateX(5px);
+	cursor: pointer;
+}
+
+.text-muted {
+	color: var(--accent-color) !important;
+	font-size: 1.2em;
+	letter-spacing: 0.5px;
+	opacity: 0.7;
+}
+
+::-webkit-scrollbar {
+	width: 8px;
+        opacity: 0 !important;
+        transition: opacity 0.3s ease-in-out;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--accent-color);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+	margin: 50px 0;
+}
+
+body:hover, 
+.container:hover, 
+#playlistContainer:hover {
+	overflow-x: hidden !important;
+        overflow-y: auto !important;
+}
+
+#playlistContainer {
+        cursor: default; 
+}
+
+#playlistContainer:hover {
+        cursor: grab;    
+}
+
+#playlistContainer:active {
+        cursor: grabbing;
+}
+
+::-webkit-scrollbar:horizontal {
+	display: none !important;
+	height: 0 !important;
+}
+
+@supports (scrollbar-width: none) {
+	html {
+		scrollbar-width: none !important;
+	}
+}
+
+.drop-zone {
+	position: relative;
+	border: 2px dashed transparent;
+	border-radius: 10px;
+	padding: 2rem;
+	z-index: 1;
+}
+
+.drop-zone::before {
+	content: "";
+	position: absolute;
+	top: -2px;
+	left: -2px;
+	right: -2px;
+	bottom: -2px;
+	z-index: -1;
+	border: 2px dashed var(--bs-primary);
+	border-radius: 10px;
+	animation: border-wave 2s linear infinite;
+	pointer-events: none;
+	mask-image: linear-gradient(90deg, #000 50%, transparent 0%);
+	mask-size: 10px 100%;
+	mask-repeat: repeat;
+	-webkit-mask-image: linear-gradient(90deg, #000 50%, transparent 0%);
+	-webkit-mask-size: 10px 100%;
+	-webkit-mask-repeat: repeat;
+}
+
+@keyframes border-wave {
+	0% {
+		mask-position: 0 0;
+	}
+
+	100% {
+		mask-position: 100% 0;
+	}
+}
+
+.drop-zone:hover::before {
+	border-color: var(--accent-color);
+}
+
+.upload-icon {
+	font-size: 50px;
+	color: var(--accent-color);
+	margin-bottom: 15px;
+}
+
+.upload-text {
+	font-size: 18px;
+	font-weight: 500;
+	color: var(--text-primary);
+	margin-bottom: 10px;
+}
+
+#customUploadButton {
+	--btn-hover-bg: color-mix(in oklch, var(--btn-primary-bg), white 8%);
+	background: var(--btn-primary-bg);
+	position: relative;
+	overflow: hidden;
+	&: :after {
+		content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: radial-gradient(circle at 50% 50%, 
+			oklch(100% 0 0 / 0.15) 0%, 
+			transparent 70%);
+	opacity: 0;
+	transition: opacity 0.3s ease;
+}
+	
+	&:hover {
+	background: var(--btn-hover-bg);
+	transform: translateY(-2px) scale(1.05);
+	&: :after {
+			opacity: 1;
+}
+	}
+}
+
+.file-list {
+	max-height: 200px;
+	overflow-y: auto;
+	background: var(--file-list-bg);
+	border: 1px solid var(--file-list-border);
+	scrollbar-width: thin;
+	scrollbar-color: var(--accent-color) transparent;
+	&: :-webkit-scrollbar-thumb {
+		background: var(--accent-color);
+	border-radius: 4px;
+}
+}
+
+.file-list-item {
+	border-bottom-color: color-mix(in oklch, var(--file-list-border), transparent 50%);
+	transition: background 0.2s ease;
+	&: hover {
+		background: color-mix(in oklch, var(--btn-primary-bg), transparent 80%);
+}
+}
+
+.remove-file {
+	color: var(--accent-color) !important;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.remove-file:hover {
+	color: oklch(65% 0.25 15) !important;
+	filter: drop-shadow(0 0 4px oklch(65% 0.3 15 / 0.3));
+	transform: scale(1.15);
+}
+
+[data-theme="light"] .remove-file:hover {
+	color: oklch(50% 0.3 15) !important;
+	filter: drop-shadow(0 0 6px oklch(50% 0.3 15 / 0.2));
+}
+
+@keyframes danger-pulse {
+	0% {
+		opacity: 0.8;
+	}
+
+	50% {
+		opacity: 1;
+	}
+
+	100% {
+		opacity: 0.8;
+	}
+}
+
+.remove-file:hover::after {
+	position: absolute;
+	right: -1.2em;
+	top: 50%;
+	transform: translateY(-50%);
+	animation: danger-pulse 1.5s ease infinite;
+	filter: hue-rotate(-20deg);
+}
+
+.file-list-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 8px 12px;
+	min-height: 42px;
+}
+
+.remove-file {
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	margin-left: 12px;
+	font-size: 1.25rem;
+	vertical-align: middle;
+	position: relative;
+	top: 1px;
+}
+
+.bi-file-earmark {
+	font-size: 1.1rem;
+	margin-right: 10px;
+	position: relative;
+	top: -1px;
+}
+
+.file-list-item > div:first-child {
+	display: inline-flex;
+	align-items: center;
+	max-width: calc(100% - 40px);
+	line-height: 1.4;
+}
+
+.file-list-item:last-child {
+	border-bottom: none;
+}
+
+.file-list-item i {
+	color: var(--accent-color);
+	margin-right: 8px;
+}
+
+.card:hover .fileCheckbox {
+        filter: drop-shadow(0 0 3px rgba(13, 110, 253, 0.5));
+}
+
+@media (max-width: 576px) {
+        .fileCheckbox {
+            transform: scale(1.1) !important;
+        }
+}
+</style>
+
+<style>
+.custom-btn {
+    padding: 4px 8px;
+    font-size: 14px;
+    gap: 4px;
+}
+
+.custom-btn i {
+    font-size: 16px;
+}
+
+.d-flex .custom-btn {
+    margin: 0 4px;
+}
+
+.share-btn.custom-btn {
+    background-color: #ffc107;
     color: #fff;
-    height: 100vh;
-    overflow: hidden;
+    padding: 6px 8px;
+    font-size: 14px;
 }
 
-.main-container {
-    display: flex;
-    height: 100vh;
+.share-btn.custom-btn i {
+    font-size: 16px;
 }
 
-.content-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    transition: all 0.3s ease;
+.set-bg-btn.custom-btn {
+    background-color: #17a2b8;
+    color: #fff;
+    padding: 6px 8px;
+    font-size: 14px;
 }
 
-.content-area.fullscreen {
-    display: none;
-}
-
-.top-bar {
-    padding: 20px 30px;
-    background: var(--bg-container);
-
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.logo h1 {
-    font-size: 1.5rem;
-    color: var(--accent-color);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.stats {
-    display: flex;
-    gap: 25px;
-}
-
-.stat-item {
-    text-align: center;
-}
-
-.stat-value {
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: var(--accent-color);
-    display: block;
-}
-
-.stat-label {
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    margin-top: 3px;
-}
-
-.actions {
-    display: flex;
-    gap: 10px;
-}
-
-.action-btn {
-    background: var(--btn-primary-bg);
-    border: none !important;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s;
-}
-
-.action-btn:hover {
-    background: var(--item-hover-bg);
-    transform: scale(1.05);
-}
-
-.action-btn.primary {
-    background: #4CAF50;
-    border-color: #4CAF50;
-}
-
-.action-btn.primary:hover {
-    background: #45a049;
-    transform: scale(1.05);
-}
-
-.side-nav {
-    width: 240px;
-    background: var(--bg-container) !important;
-    box-shadow: 1px 0 3px -2px color-mix(in oklch, var(--bg-container), black 30%);
-    padding: 20px 15px;
-    overflow-y: auto;
-    color: var(--text-primary) !important;
-}
-
-.nav-section {
-    margin-bottom: 25px;
-}
-
-.nav-section-title {
-    color: var(--text-primary);
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    padding: 0 0 10px;
-    border-bottom: var(--border-strong);
-    margin-bottom: 15px;
-}
-
-.side-nav .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 15px;
-    color: var(--text-primary);
-    text-decoration: none;
-    transition: all 0.3s;
-    border: var(--border-strong) !important;
-    border-left: 3px solid transparent;
-    border-radius: 8px;
-    margin: 5px 0;
-}
-
-.side-nav .nav-item:hover {
-    background-color: var(--accent-tertiary) !important;
-    color: white !important;
-    transform: translateX(3px);
-}
-
-.nav-item.active {
-    background: var(--accent-color);
-    color: white;
-}
-
-.nav-icon {
-    font-size: 1.2rem;
-    width: 24px;
-    margin-right: 12px;
-}
-
-.media-grid-container {
-    flex: 1;
-    padding: 30px;
-    overflow-y: auto;
-    background: var(--card-bg);
-}
-
-.grid-title {
-    font-size: 1.4rem;
-    margin-bottom: 25px;
-    color: var(--accent-tertiary);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.media-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-}
-
-.media-item {
-    background: var(--bg-container);
-    border-radius: 10px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.3s;
-    border: var(--border-strong);
-    position: relative;
-}
-
-.media-item:hover {
-    transform: translateY(-5px);
-    border-color: var(--bg-container);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-}
-
-.media-thumb {
-    width: 100%;
-    height: 140px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+#previewModal .modal-body {
+    height: 65vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
-    overflow: hidden;
+    position: relative; 
 }
 
-.media-thumb img {
+#previewImage,
+#previewVideo {
+    max-height: 100%;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.media-thumb i {
-    font-size: 2.5rem;
-    color: white;
-}
-
-.media-info {
-    padding: 15px;
-}
-
-.media-name {
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.media-meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-}
-
-.player-area {
-    width: 50%;
-    background: var(--bg-container);
-    display: none;
-    flex-direction: column;
-    border-left: var(--border-strong);
-}
-
-.player-area.active {
-    display: flex;
-}
-
-.player-header {
-    padding: 20px;
-    background: var(--bg-container);
-    border-bottom: 1px solid #333;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.player-title {
-    font-size: 1.2rem;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.player-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.player-btn {
-    background: var(--btn-primary-bg);
-    border: var(--border-strong);
-    color: #ffffff;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-
-.player-btn:hover {
-    background: var(--item-hover-bg);
-}
-
-.player-content {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-
-#audioPlayer, #videoPlayer {
-    width: 100%;
-    background: #000;
-    border-radius: 8px;
-}
-
-#imageViewer {
-    max-width: 100%;
-    max-height: 80vh;
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-.fullscreen-player {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: #000;
-    z-index: 1000;
-    display: none;
-}
-
-.fullscreen-player.active {
-    display: flex;
-    flex-direction: column;
-}
-
-.fullscreen-header {
-    padding: 20px;
-    background: var(--bg-container);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1001;
-}
-
-.fullscreen-content {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    margin: 0;
-}
-
-#fullscreenVideo {
-    width: 100%;
-    height: 100%;
-    background: #000;
     object-fit: contain;
 }
 
-#fullscreenAudio {
-    width: 80%;
-    max-width: 800px;
-    background: #000;
-    position: relative;
-    z-index: 1002;
-}
-
-#fullscreenImage {
+#previewAudio {
     width: auto;
-    height: auto;
-    max-width: 95%;
-    max-height: 95%;
-    object-fit: contain;
-    margin: auto;
+    max-width: 80%;
+    margin: 20px auto 0;
+    display: block;
+    border-radius: 10px;
+    padding: 5px 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-#fullscreenPlayError {
-    color: #fff;
-    text-align: center;
-    padding: 40px;
+#previewAudio.d-none {
+    display: none;
+}
+
+.hover-tips {
+    font-size: 1.3rem;
+    color: var(--accent-color);
+    margin-top: 10px; 
+
+}
+
+.file-info-overlay p {
+    margin-bottom: 0.5rem; 
+    text-align: left; 
+}
+
+.preview-nav-btn {
     position: absolute;
     top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.8);
-    border-radius: 10px;
-}
-
-.player-content {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    position: relative;
-}
-
-#videoPlayer {
-    width: 100%;
-    max-height: calc(100vh - 120px);
-    background: #000;
-    border-radius: 8px;
-    object-fit: contain;
-}
-
-#audioPlayer {
-    width: 100%;
-    max-width: 600px;
-    background: #000;
-    border-radius: 8px;
-}
-
-#imageViewer {
-    max-width: 90%;
-    max-height: 80vh;
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    object-fit: contain;
-}
-
-.fullscreen-player {
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.fullscreen-player:fullscreen #fullscreenVideo::-webkit-media-controls-panel,
-.fullscreen-player:fullscreen #fullscreenAudio::-webkit-media-controls-panel {
+    transform: translateY(-50%);
+    font-size: 3rem;
+    color: var(--nav-btn-color); 
+    cursor: pointer;
+    z-index: 1000;
     opacity: 0;
     transition: opacity 0.3s;
 }
 
-.fullscreen-player:fullscreen:hover #fullscreenVideo::-webkit-media-controls-panel,
-.fullscreen-player:fullscreen:hover #fullscreenAudio::-webkit-media-controls-panel {
+.modal-content:hover .preview-nav-btn {
     opacity: 1;
 }
 
-@media (max-width: 768px) {
-    .player-area {
-        width: 100%;
-    }
-    
-    #fullscreenAudio {
-        width: 90%;
-    }
-    
-    #fullscreenImage {
-        max-width: 98%;
-        max-height: 90%;
+#prevBtn {
+    left: 20px;
+}
+
+#nextBtn {
+    right: 20px;
+}
+
+.loading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: none;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.drag-handle {
+    cursor: grab;
+    z-index: 10;
+    user-select: none;
+}
+.sortable-chosen .drag-handle {
+    cursor: grabbing;
+}
+
+[data-filename] {
+    cursor: grab;
+}
+.sortable-chosen {
+    cursor: grabbing !important;
+}
+
+.upload-area i {
+    animation: pulse 1s infinite;
+}
+
+.file-checkbox-wrapper {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.fileCheckbox:checked + .file-checkbox-wrapper,
+.file-checkbox-wrapper.force-visible {
+    opacity: 1 !important;
+}
+
+@media (min-width: 768px) {
+    .card:hover .file-checkbox-wrapper:not(.force-visible) {
+        opacity: 1;
     }
 }
 
-@media (hover: none) and (pointer: coarse) {
-    #fullscreenVideo::-webkit-media-controls-panel,
-    #fullscreenAudio::-webkit-media-controls-panel {
+@media (max-width: 767.98px) {
+    .file-checkbox-wrapper {
         opacity: 1 !important;
     }
 }
 
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #666;
-    background:var(--bg-container);
-    border-radius: 12px;
-    border: var(--border-strong);
-}
+@media (max-width: 576px) {
+    .card-body .btn {
+        font-size: 0.75rem !important;  
+        padding: 0.25rem 0.5rem !important; 
+        white-space: nowrap;  
+    }
+ }
 
-.empty-icon {
-    font-size: 3.5rem;
-    margin-bottom: 20px;
-    opacity: 0.5;
-    color: #4CAF50;
-}
-
-.recent-list {
-    padding: 20px;
-}
-
-.recent-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 15px;
-    background: var(--bg-container);
-    border-radius: 8px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: var(--border-strong);
-}
-
-.recent-item:hover {
-    background: var(--bg-container);
-    border-color: #4CAF50;
-}
-
-.recent-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 6px;
-    background: var(--bg-container);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 15px;
-    color: #4CAF50;
-}
-
-.recent-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.recent-name {
-    font-weight: 500;
-    margin-bottom: 3px;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.recent-path {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background-color: color-mix(in oklch, var(--header-bg), transparent 75%);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--accent-color);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--item-hover-bg);
-}
-
-.loading {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-size: 14px;
-}
-
-.warning-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #ff9800;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: bold;
-}
-
-.media-item {
-    animation: fadeIn 0.3s ease forwards;
-    opacity: 0;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.fullscreen-player video {
-    width: 100vw;
-    height: 100vh;
-    object-fit: contain;
-}
-
-.fullscreen-player img {
-    max-width: 95vw;
-    max-height: 95vh;
-    object-fit: contain;
-}
-
-.skeleton {
-    background: linear-gradient(90deg, #2c2c2c 25%, #333 50%, #2c2c2c 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-}
-
-.context-menu {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 450px;
-    background: #2c2c2c;
-    border: var(--border-strong);
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    z-index: 10000;
-    display: none;
-}
-
-.context-menu-header {
-    display: flex;
-    align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid #444;
-    background: #333;
-    border-radius: 10px 10px 0 0;
-}
-
-.context-menu-header i {
-    color: #4CAF50;
-    margin-right: 10px;
-    font-size: 1.2rem;
-}
-
-.context-menu-header span {
-    font-weight: bold;
-    flex: 1;
-}
-
-.context-menu-close {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 1.2rem;
-    padding: 5px;
-    border-radius: 5px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-}
-
-.context-menu-close:hover {
-    background: #444;
-    color: #fff;
-}
-
-.context-menu-content {
-    padding: 20px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.info-item {
-    display: flex;
-    margin-bottom: 15px;
-    align-items: flex-start;
-}
-
-.info-label {
-    width: 100px;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    flex-shrink: 0;
-}
-
-.info-value {
-    flex: 1;
-    color: #fff;
-    word-break: break-all;
-    line-height: 1.4;
-}
-
-.context-menu-actions {
-    display: flex;
-    padding: 15px 20px;
-    border-top: 1px solid #444;
-    gap: 10px;
-}
-
-.context-menu-btn {
-    flex: 1;
-    padding: 10px;
-    background: #333;
-    border: 1px solid #444;
-    border-radius: 5px;
-    color: #fff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.2s;
-}
-
-.context-menu-btn:hover {
-    background: #444;
-}
-
-.context-menu-btn:first-child {
-    background: #4CAF50;
-    border-color: #4CAF50;
-}
-
-.context-menu-btn:first-child:hover {
-    background: #45a049;
-}
-
-.context-menu-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 9999;
-    display: none;
-}
-
-.chart-container {
-    position: relative;
-    width: 100%;
-}
-
-.chart-canvas {
-    width: 100% !important;
-    height: 100% !important;
-}
-
-@keyframes pulse {
-    0% { opacity: 0.7; }
-    50% { opacity: 1; }
-    100% { opacity: 0.7; }
-}
-
-.critical {
-    animation: pulse 1s infinite;
-}
-
-.status-card {
-    background: #333;
-    border-radius: 10px;
-    padding: 15px;
-    transition: all 0.3s;
-}
-
-.status-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
-
-.system-time {
-    font-family: 'Courier New', monospace;
-    letter-spacing: 1px;
-}
-
-.time-updating {
-    animation: timePulse 1s infinite;
-}
-
-@keyframes timePulse {
-    0% { opacity: 0.8; }
-    50% { opacity: 1; }
-    100% { opacity: 0.8; }
+@media (max-width: 768px) {
+    #previewAudio {
+        width: 95% !important;
+        max-width: none;
+    }
 }
 
 @media (max-width: 768px) {
-    #homeSection > div:first-child {
-        grid-template-columns: 1fr;
-    }
-
-    .system-status-grid {
-        grid-template-columns: 1fr !important;
-    }
-    
-    .system-charts {
-        grid-template-columns: 1fr;
-    }
-    
-    .real-time-stats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 480px) {
-    .real-time-stats {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 1200px) {
-    .main-container {
+    .me-3.d-flex.gap-2.mt-4.ps-2 {
         flex-direction: column;
+        align-items: flex-start;
+        gap: 0.3rem;
+        padding-left: 15px; 
+        margin-bottom: 0.5rem !important; 
+  }
+
+@media (max-width: 768px) {
+    .controls {
+        gap: 0.1rem;  
     }
-    
-    .player-area {
-        width: 100%;
-        height: 50vh;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 1000;
+
+    .controls .control-btn {
+        font-size: 0.7rem;  
+        padding: 0.1rem 0.2rem;  
+        border-radius: 50%;  
     }
-    
-    .content-area {
-        height: 50vh;
+
+    .controls .btn {
+        padding: 0.1rem 0.2rem; 
     }
-    
-    .side-nav {
-        width: 100%;
-        height: auto;
-        flex-direction: row;
-        overflow-x: auto;
-        padding: 10px;
+}
+
+@media (max-width: 575.98px) {
+  .time-display {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.25rem 0.5rem !important;
+    font-size: 1.05rem !important;
+  }
+
+  .time-display > span {
+    box-sizing: border-box;
+    white-space: nowrap !important;
+    overflow: visible !important;
+  }
+
+  .time-display > span:nth-child(1),
+  .time-display > span:nth-child(2) {
+    flex: 0 0 33.33% !important;
+    order: 1;
+  }
+
+  .time-display > span:nth-child(3),
+  .time-display > span:nth-child(4) {
+    flex: 0 0 100% !important;
+    order: 2;
+    margin-top: 0.25rem !important;
+    text-align: center !important;
+  }
+
+  .lunar-text {
+    font-size: 1.05rem !important;
+    letter-spacing: -0.3px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  #fontToggleBtn {
+    margin-right: 8px;
+  }
+  #langBtnWrapper {
+    margin-left: 6px;
+  }
+}
+
+@media (max-width: 576px) {
+  .share-btn.custom-btn {
+    display: none !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .custom-btn {
+    margin-right: 0px !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  #fontToggleBtn {
+    min-height: 26px;
+    padding: 8px 14px;
+  }
+
+  #fontToggleBtn i {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 576px) {
+    .card-body .custom-btn {
+        padding: 0.2rem 0.3rem !important;
+        font-size: 0.8rem !important;
     }
-    
-    .nav-section {
-        padding: 15px;
-        border-bottom: none;
-        border-right: 1px solid #333;
+}
+
+@media (max-width: 576px) {
+    #fileGrid .card {
+        padding: 0.25rem;
+    }
+
+    #fileGrid .card .card-body {
+        padding: 0.25rem;
+    }
+
+    #fileGrid .card h5,
+    #fileGrid .card p,
+    #fileGrid .card .file-info-overlay p {
+        font-size: 0.75rem;
+        margin: 0.125rem 0;
+    }
+
+    #fileGrid .card .preview-container {
+        max-height: 180px;
+        overflow: hidden;
+    }
+
+    #fileGrid .card .custom-btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
     }
 }
 
 @media (max-width: 768px) {
-    .media-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 12px;
-    }
-    
-    .top-bar {
-        padding: 15px;
-        flex-wrap: wrap;
-    }
-    
-    .stats {
-        order: 3;
-        width: 100%;
-        justify-content: space-around;
-        margin-top: 15px;
-    }
-
-    .side-nav {
-        width: 180px;
-        padding: 15px 0;
-    }
-    
-    .nav-item {
-        padding: 10px 12px;
-    }
-
-    .logo h1 {
-        margin-bottom: 12px;
+    .btn i {
+        font-size: 0.8rem !important;
+        margin-left: 3px;
     }
 }
 
-@media (prefers-color-scheme: dark) {
-    body {
-        background: #0a0a0a;
-    }
-    
-    .media-item {
-        background: #222;
-    }
+@media (max-width: 575.98px) {
+  #selectAll-container input[type="checkbox"] {
+    transform: scale(1) !important;
+    width: 1em !important;
+    height: 1em !important;
+    margin-left: 0 !important;
+    margin-right: 0.3rem !important;
+    flex-shrink: 0;
+  }
+
+  #selectAll-container {
+    flex-wrap: nowrap !important;
+    gap: 0.2rem !important;
+    overflow-x: auto;
+  }
+
+  #selectAll-container input[type="checkbox"] {
+    margin-right: 0.15rem !important;
+  }
+
+  #selectAll-container label[for="selectAll"] {
+    margin-right: 0.2rem !important;
+  }
+
+  #selectAll-container input[type="color"],
+  #selectAll-container button {
+    margin-right: 0.2rem !important;
+  }
 }
 
-.media-item:focus-visible,
-.nav-item:focus-visible,
-.action-btn:focus-visible {
-    outline: 2px solid #4CAF50;
-    outline-offset: 2px;
-}
-
-.hover-playable {
-    position: relative;
-}
-
-.hover-video-container {
-    z-index: 100 !important;
-}
-
-@media (hover: none) and (pointer: coarse) {
-    .media-item:hover {
-        transform: none;
-    }
-    
-    .action-btn,
-    .player-btn {
-        min-height: 44px;
-        min-width: 44px;
-    }
-}
-
-.side-nav.collapsed {
-    width: 70px;
-    padding: 20px 10px;
-}
-
-.side-nav.collapsed .nav-item span:not(.nav-icon),
-.side-nav.collapsed .nav-section-title,
-.side-nav.collapsed .system-status {
-    display: none;
-}
-
-.side-nav.collapsed .lunar-sidebar {
-    display: none !important;
-}
-
-.side-nav.collapsed .nav-item {
-    padding: 12px;
-    justify-content: center;
-    margin: 5px 0;
-}
-
-.side-nav.collapsed .nav-icon {
-    margin: 0;
-    font-size: 1.3rem;
-}
-
-.fa-server {
-    cursor: pointer !important;
-    transition: transform 0.3s ease !important;
-    padding: 2px;
-    border-radius: 3px;
-}
-
-.fa-server:hover {
-    background: rgba(76, 175, 80, 0.1);
-    transform: rotate(90deg);
-}
-
-.side-nav.collapsed ~ #contentArea .fa-server {
-    transform: rotate(90deg);
-}
-
-.resizer {
-    width: 5px;
-    background: transparent;
-    cursor: col-resize;
-    position: relative;
-    z-index: 100;
-    transition: background 0.2s;
-    margin: 0 -2px;
-}
-
-.resizer:hover,
-.resizer.dragging {
-    background: #4CAF50;
-}
-
-.resizer::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 3px;
-    height: 30px;
-    background: #4CAF50;
-    border-radius: 2px;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.resizer:hover::after {
-    opacity: 1;
-}
-
-.resizer.dragging::after {
-    opacity: 1;
-}
-
-.content-area {
-    position: relative;
-}
-
-.side-nav {
-    transition: width 0.3s ease;
-}
-
-.player-area {
-    min-width: 300px;
-    max-width: 80%;
-} 
-
-.text-white,
-.text-white-50 {
-    color: var(--text-primary) !important;
-}
-
-.card .bg-black.bg-opacity-25,
-.card .bg-opacity-25.bg-black,
-.quick-action-card,
-.status-tile {
-    background: var(--card-bg) !important;
-    border: var(--border-strong) !important;
-    transition: transform 0.3s ease !important;
-}
-
-.card .bg-black.bg-opacity-25:hover,
-.card .bg-opacity-25.bg-black:hover,
-.quick-action-card:hover,
-.status-tile:hover {
-    transform: translateY(-2px) !important;
-    background-color: var(--card-bg) !important;
-    border-color: #4CAF50 !important;
-}
-
-.card {
-    background: var(--bg-container) !important;
-    transition: transform 0.3s ease !important;
-    border: none !important;
-}
-
-.card:hover {
-    transform: translateY(-2px) !important;
-    border-color: #4CAF50 !important;
-}
-
-.col-lg-6 .card .bg-black.bg-opacity-25,
-.col-md-6 .card .bg-black.bg-opacity-25 {
-    background: var(--card-bg) !important;
-}
-
-.row.g-3 .col-6 .bg-black.bg-opacity-25 {
-    background: var(--card-bg) !important;
-}
-
-.row.g-3 .col-12 .bg-black.bg-opacity-25 {
-    background: var(--card-bg) !important;
-}
-
-.card.bg-black.bg-opacity-25.border-secondary {
-    background: var(--card-bg) !important;
-}
-
-.row.g-3 .col-6 .bg-black.bg-opacity-25.quick-action-card {
-    background: var(--card-bg) !important;
-}
-
-.card-body .bg-black.rounded {
-    background: var(--bg-container) !important;
-}
-
-.progress {
-    background-color: var(--bg-container) !important;
-    border: var(--border-strong) !important;
-}
-
-.player-title {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    color: var(--accent-tertiary);
-    min-width: 0 !important;
-}
-
-.player-title-text {
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    min-width: 0 !important;
-    flex: 1 !important;
-}
-
-.truncate {
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-
-.lunar-sidebar {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    margin-top: 10px;
-}
-
-.side-nav.collapsed .lunar-sidebar {
-    display: none !important;
-}
 </style>
-<div class="main-container">
-    <div class="content-area" id="contentArea">
-        <div class="top-bar">
-            <div class="logo">
-                <h1>
-                    <i class="fas fa-server logo-toggle" onclick="toggleSidebar()" 
-                       data-translate-tooltip="toggle_menu" style="cursor: pointer; transition: transform 0.3s;">
-                    </i> 
-                    <span data-translate="openwrt_media_center">OpenWrt Media Center</span>
-                </h1>
+
+<div class="container-sm container-bg text-center mt-4" id="mainContainer">
+   <div class="alert alert-secondary d-none" id="toolbar">
+        <div class="d-flex justify-content-between flex-column flex-sm-row">
+            <div>
+                <button class="btn btn-outline-primary" id="selectAllBtn" data-translate="select_all"></button>
+                <span id="selectedInfo"></span>
             </div>
-            
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-value"><?= count($media['music']) ?></span>
-                    <span class="stat-label" data-translate="audio">Music</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-value"><?= count($media['video']) ?></span>
-                    <span class="stat-label" data-translate="video">Video</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-value"><?= count($media['image']) ?></span>
-                    <span class="stat-label" data-translate="image">Image</span>
-                </div>
-                <?php if ($diskInfo): ?>
-                <div class="stat-item">
-                    <span class="stat-value"><?= $diskInfo['used_percent'] ?>%</span>
-                    <span class="stat-label" data-translate="disk_usage">Disk Usage</span>
-                </div>
-                <?php endif; ?>
-            </div>
-            
-            <div class="actions">
-                <button class="action-btn" onclick="refreshMedia()">
-                    <i class="fas fa-redo"></i>
-                    <span data-translate="refresh">Refresh</span>
-                </button>
-                <button class="action-btn primary" onclick="toggleFullscreen()">
-                    <i class="fas fa-expand"></i>
-                    <span data-translate="fullscreen_play">Fullscreen Play</span>
-                </button>
-            </div>
+            <button class="btn btn-danger" id="batchDeleteBtn" data-translate="batch_delete"></button>
         </div>
+    </div>
+<div class="card">
+<div class="card-header d-flex justify-content-between align-items-center py-2">
+    <div class="time-display">
+        <span id="dateDisplay" style="color: #4CAF50;"></span>
+        <span id="weekDisplay" style="color: #FF9800;"></span>
+        <span id="lunarDisplay" class="lunar-text" style="color: #F48FB1;"></span>
+        <span id="timeDisplay"></span>
+    </div>
+    <div class="weather-display d-flex align-items-center d-none d-sm-inline">
+      <i id="weatherIcon" class="wi wi-na" style="font-size:28px; margin-right:4px;"></i>
+      <span id="cityNameDisplay" style="color:var(--accent-color); font-weight:700;"></span>
+      <span id="weatherText" style="color:var(--accent-color); font-weight: 700;"></span>
+    </div>
+</div>
+    <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-center text-center gap-2">
+        <h5 class="mb-0" style="line-height: 40px; height: 40px;" data-translate="spectra_config"></h5>
+        <p id="status" class="mb-0"><span data-translate="current_mode"></span></p>
+        <button id="toggleButton" onclick="toggleConfig()" class="btn btn-primary" data-translate="toggle_mode"></button>
+    </div>
+        <div class="d-flex align-items-center">
+            <?php
+            $mountPoint = '/'; 
+            $freeSpace = @disk_free_space($mountPoint);
+            $totalSpace = @disk_total_space($mountPoint);
+            $usedSpace = $totalSpace - $freeSpace;
+            
+            function formatSize($bytes) {
+                $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+                $index = 0;
+                while ($bytes >= 1024 && $index < count($units) - 1) {
+                    $bytes /= 1024;
+                    $index++;
+                }
+                return round($bytes, 2) . ' ' . $units[$index];
+            }
+            ?>  
+            <div class="me-3 d-flex gap-2 mt-2 ps-2" 
+                 data-translate-tooltip="mount_info" data-mount-point="<?= $mountPoint ?>" data-used-space="<?= $usedSpace ? formatSize($usedSpace) : 'N/A' ?>" data-tooltip="">
+                <span class="btn btn-primary btn-sm mb-2 d-none d-sm-inline"><i class="bi bi-hdd"></i> <span data-translate="total">Total：</span><?= $totalSpace ? formatSize($totalSpace) : 'N/A' ?></span>
+                <span class="btn btn-success btn-sm mb-2  d-none d-sm-inline"><i class="bi bi-hdd"></i> <span data-translate="free">Free：</span><?= $freeSpace ? formatSize($freeSpace) : 'N/A' ?></span>
+            </div>
+            <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#updateConfirmModal" data-translate-tooltip="check_update"><i class="fas fa-cloud-download-alt"></i> <span class="btn-label"></span></button>
+            <button class="btn btn-warning ms-2" data-bs-toggle="modal" data-bs-target="#uploadModal" data-translate-tooltip="batch_upload"><i class="bi bi-upload"></i> <span class="btn-label"></span></button>
+            <button class="btn btn-primary ms-2" id="openPlayerBtn" data-bs-toggle="modal" data-bs-target="#playerModal" data-translate-tooltip="add_to_playlist"><i class="bi bi-play-btn"></i> <span class="btn-label"></span></button>
+            <button class="btn btn-success ms-2 d-none d-sm-inline" id="toggleScreenBtn" data-translate-tooltip="toggle_fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
+            <button type="button" class="btn btn-primary ms-2 d-none d-sm-inline" onclick="showIpDetailModal()" data-translate-tooltip="ip_info"><i class="fa-solid fa-satellite-dish"></i></button>
+            <button class="btn btn-danger ms-2" id="clearBackgroundBtn" data-translate-tooltip="clear_background"><i class="bi bi-trash"></i> <span class="btn-label"></span></button> 
+        </div>
+    </div>
+        <h2 class="mt-3 mb-0" data-translate="file_list">File List</h2>
+    <div class="card-body">
+        <?php if (isset($error)): ?>
+            <div class="alert alert-danger"><?= $error ?></div>
+        <?php endif; ?>
         
-        <div style="display: flex; flex: 1; overflow: hidden;">
-            <div class="side-nav" id="sideNav">
-                <div class="nav-section">
-                    <a href="#" class="nav-item active" onclick="showSection('home')" data-translate-tooltip="home">
-                        <span class="nav-icon"><i class="fas fa-home"></i></span>
-                        <span data-translate="home">Home</span>
-                    </a>
-                    <a href="#" class="nav-item" onclick="showSection('music')" data-translate-tooltip="audio">
-                        <span class="nav-icon"><i class="fas fa-music"></i></span>
-                        <span data-translate="audio">Music</span>
-                    </a>
-                    <a href="#" class="nav-item" onclick="showSection('video')" data-translate-tooltip="video">
-                        <span class="nav-icon"><i class="fas fa-video"></i></span>
-                        <span data-translate="video">Video</span>
-                    </a>
-                    <a href="#" class="nav-item" onclick="showSection('image')" data-translate-tooltip="image">
-                        <span class="nav-icon"><i class="fas fa-image"></i></span>
-                        <span data-translate="image">Image</span>
-                    </a>
-                    <a href="#" class="nav-item" onclick="showSection('recent')" data-translate-tooltip="recent_play">
-                        <span class="nav-icon"><i class="fas fa-history"></i></span>
-                        <span data-translate="recent_play">Recent Play</span>
-                    </a>
-                </div>
-                
-                <div class="system-status" id="systemStatus">
-                    <div class="nav-section">
-                        <div class="nav-section-title" data-translate="system_status">System Status</div>
-                        <?php if ($diskInfo): ?>
-                        <div style="padding: 15px; color: var(--text-primary); font-size: 0.9rem;">
-                            <div><span data-translate="disk_usage_colon">Disk Usage:</span> <?= $diskInfo['used_mb'] ?>MB / <?= $diskInfo['total_mb'] ?>MB</div>
-                            <div style="height: 6px; background: #fff; border-radius: 3px; margin: 10px 0; overflow: hidden;">
-                                <div style="width: <?= $diskInfo['used_percent'] ?>%; height: 100%; background: #4CAF50;"></div>
-                            </div>
-                            <div><span data-translate="free_space">Free Space:</span> <?= $diskInfo['free_mb'] ?>MB</div>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
+        <div class="d-flex align-items-center mb-3 ps-2" id="selectAll-container">
+            <input type="checkbox" id="selectAll" class="form-check-input me-2 shadow-sm" style="width: 1.05em; height: 1.05em; border-radius: 0.35em; margin-left: 1px; transform: scale(1.2)">
+            <label for="selectAll" class="form-check-label fs-5 ms-1" style="margin-right: 10px;" data-translate="select_all">Select All</label>
 
-                <div class="lunar-sidebar lunar-collapsible">
-                    <div class="nav-section">
-                        <div style="padding: 12px 15px;">
-                        <div style="text-align: center;">
-                            <div id="dateDisplay" style="color: #4CAF50;"></div>
-                            <div id="weekDisplay" style="color: var(--text-primary); margin: 3px 0;"></div>
-                            <div id="lunarDisplay" style="color: #2196F3; font-size: 1.1rem; margin: 5px 0;"></div>
-                            <div id="timeDisplay" style="color: #9C27B0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; margin-top: 10px;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="ms-auto" style="margin-right: 20px;">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#langModal">
+                <img id="flagIcon" src="/luci-static/ipip/flags/<?php echo $flagFile; ?>" style="width:30px; height:22px; object-fit: contain;">
+                <span data-translate="change_language">Change Language</span>
+            </button>
         </div>
-            <div class="resizer" id="resizer"></div>          
-            <div class="media-grid-container" id="gridContainer">
-                <div id="homeSection" class="grid-section">
-                    <div class="grid-title">
-                        <i class="fas fa-home"></i>
-                        <span data-translate="welcome_to_media_center">Welcome to Media Center</span>
-                    </div>
-                        
-                    <div class="row g-4">
-                        <div class="col-lg-6">
-                            <div class="card bg-dark border-secondary h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title text-success mb-4" data-translate="media_statistics">Media Statistics</h5>
-                                    <div class="row g-3">
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="display-6 text-success mb-2"><?= count($media['music']) ?></div>
-                                                <div class="text-white-50" data-translate="music_files">Music Files</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="display-6 text-success mb-2"><?= count($media['video']) ?></div>
-                                                <div class="text-white-50" data-translate="video_files">Video Files</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="display-6 text-success mb-2"><?= count($media['image']) ?></div>
-                                                <div class="text-white-50" data-translate="image_files">Image Files</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="display-6 text-success mb-2">
-                                                    <?= count($media['music']) + count($media['video']) + count($media['image']) ?>
-                                                </div>
-                                                <div class="text-white-50" data-translate="total_files">Total Files</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+    </div>
+        <?php
+            $history_file = './lib/background_history.txt';
+            $background_history = file_exists($history_file) ? file($history_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : [];
 
-                        <div class="col-lg-6">
-                            <div class="card bg-dark border-secondary h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title text-success mb-4" data-translate="quick_actions">Quick Actions</h5>
-                                    <div class="row g-3">
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center quick-action-card" onclick="showSection('music')">
-                                                <div class="action-icon mb-3">
-                                                    <i class="fas fa-music fa-2x text-success"></i>
-                                                </div>
-                                                <div class="action-title text-white" data-translate="browse_music">Browse Music</div>
-                                                <div class="action-count small text-success mt-2">
-                                                    <?= count($media['music']) ?> <span data-translate="items">items</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center quick-action-card" onclick="showSection('video')">
-                                                <div class="action-icon mb-3">
-                                                    <i class="fas fa-video fa-2x text-primary"></i>
-                                                </div>
-                                                <div class="action-title text-white" data-translate="browse_video">Browse Video</div>
-                                                <div class="action-count small text-primary mt-2">
-                                                    <?= count($media['video']) ?> <span data-translate="items">items</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center quick-action-card" onclick="showSection('image')">
-                                                <div class="action-icon mb-3">
-                                                    <i class="fas fa-image fa-2x text-info"></i>
-                                                </div>
-                                                <div class="action-title text-white" data-translate="browse_images">Browse Images</div>
-                                                <div class="action-count small text-info mt-2">
-                                                    <?= count($media['image']) ?> <span data-translate="items">items</span>
-                                                </div>
-                                           </div>
-                                       </div>
-                                       <div class="col-6">
-                                          <div class="bg-black bg-opacity-25 rounded p-3 text-center quick-action-card" onclick="showSection('recent')">
-                                              <div class="action-icon mb-3">
-                                                  <i class="fas fa-history fa-2x text-warning"></i>
-                                              </div>
-                                              <div class="action-title text-white" data-translate="recent_play">Recent Play</div>
-                                              <div class="action-count small text-warning mt-2">
-                                                  <?= !empty($recent) ? count($recent) : 0 ?> <span data-translate="items">items</span>
-                                              </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+            usort($files, function ($a, $b) use ($background_history) {
+                $posA = array_search($a, $background_history);
+                $posB = array_search($b, $background_history);
+                return ($posA === false ? PHP_INT_MAX : $posA) - ($posB === false ? PHP_INT_MAX : $posB);
+            });
+        ?>
+        <div  id="fileGrid" class="row row-cols-2 row-cols-md-4 row-cols-lg-5 g-4">
+            <?php foreach ($files as $file): 
+                $path = $upload_dir . '/' . $file;
+                $size = filesize($path);
+                $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                $isImage = in_array($ext, ['jpg','jpeg','png','gif']);
+                $isVideo = in_array($ext, ['mp4', 'webm', 'ogg', 'mkv']);
+                $isAudio = in_array($ext, ['mp3', 'wav', 'flac']);
+                $isMedia = $isImage || $isVideo || $isAudio;
+                $resolution = '';
+                $duration = '';
+                $bitrate = '';
+                if ($isImage) {
+                    $imageInfo = @getimagesize($path);
+                    if ($imageInfo) {
+                        $resolution = $imageInfo[0] . 'x' . $imageInfo[1];
+                    }
+                } elseif ($isVideo) {
+                    $ffmpegPath = '/usr/bin/ffmpeg'; 
+                    $cmd = "$ffmpegPath -i \"$path\" 2>&1";
+                    $output = shell_exec($cmd);
 
-                        <div class="col-lg-6">
-                            <div class="card bg-dark border-secondary h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title text-success mb-4" data-translate="system_status">System Status</h5>
-                                    <div class="row g-3 mb-3">
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="h3 text-success mb-2" id="cpuUsageDisplay">--%</div>
-                                                <div class="text-white-50" data-translate="cpu_usage">CPU Usage</div>
-                                                <div class="small text-secondary mt-2">
-                                                    <i class="fas fa-microchip me-1"></i>
-                                                    <span id="cpuCoresValue">--</span> <span data-translate="cores">cores</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="h3 text-primary mb-2" id="memUsageDisplay">--%</div>
-                                                <div class="text-white-50" data-translate="memory_usage">Memory Usage</div>
-                                                <div class="small text-secondary mt-2">
-                                                    <i class="fas fa-memory me-1"></i>
-                                                    <span id="memUsedDisplay">--</span>/<span id="memTotalDisplay">--</span> MB
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                    if ($output) {
+                        if (preg_match('/(\d{3,4})x(\d{3,4})/', $output, $matches)) {
+                            $resolution = $matches[1] . 'x' . $matches[2];
+                        }
 
-                                    <div class="row g-3">
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center status-tile d-flex flex-column justify-content-center">
-                                                <div class="h5 text-info mb-2" id="openwrtVersionDisplay">--</div>
-                                                <div class="small text-white-50" data-translate="openwrt_version">OpenWrt Version</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center status-tile d-flex flex-column justify-content-center">
-                                                <div class="h5 text-brown mb-2" style="color: #795548;" id="kernelVersionDisplay">--</div>
-                                                <div class="small text-white-50" data-translate="kernel_version">Kernel Version</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center status-tile d-flex flex-column justify-content-center">
-                                                <div class="h5 text-teal mb-2" style="color: #008000;" id="boardModelDisplay">--</div>
-                                                <div class="small text-white-50" data-translate="board_model">Board Model</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center status-tile d-flex flex-column justify-content-center">
-                                                <div class="h5 text-warning mb-2" id="timeValue">--:--:--</div>
-                                                <div class="small text-white-50" data-translate="system_time">System Time</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center status-tile d-flex flex-column justify-content-center">
-                                                <div class="h5 text-cyan mb-2" style="color: #8A2BE2;" id="timezoneDisplay">--</div>
-                                                <div class="small text-white-50" data-translate="timezone">Timezone</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center status-tile d-flex flex-column justify-content-center">
-                                                <div class="h5 text-pink mb-2" style="color: #E91E63;" id="loadAvgDisplay">--</div>
-                                                <div class="small text-white-50" data-translate="load_average">Load Average</div>
-                                            </div>
-                                        </div>
-                                        <div class="col-12">
-                                            <div class="bg-black bg-opacity-25  rounded p-3 text-center">
-                                                <div class="h4 text-purple mb-2" style="color: #9C27B0;" id="uptimeDisplay">--:--:--</div>
-                                                <div class="small text-white-50" data-translate="uptime">Uptime</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        if (preg_match('/Duration: (\d+):(\d+):(\d+)\.(\d+)/', $output, $matches)) {
+                            $hours = intval($matches[1]);
+                            $minutes = intval($matches[2]);
+                            $seconds = intval($matches[3]);
+                            $duration = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                        }
 
-                        <div class="col-lg-6">
-                            <div class="card bg-dark border-secondary h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title text-success mb-4" data-translate="system_monitoring">System Monitoring</h5>
-                                    <div class="row g-3 mb-3">
-                                        <div class="col-md-6">
-                                            <div class="card bg-black bg-opacity-25 border-secondary h-100">
-                                                <div class="card-body d-flex flex-column">
-                                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                                        <span class="text-white fw-medium" data-translate="cpu_usage">CPU Usage</span>
-                                                        <span class="text-success fw-bold" id="cpuUsageValue">
-                                                            <?= $systemInfo['cpu_usage'] ?>%
-                                                        </span>
-                                                    </div>
-                                                    <div class="progress mb-3" style="height: 30px;">
-                                                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
-                                                             id="cpuUsageBar" 
-                                                             style="width: <?= min($systemInfo['cpu_usage'], 100) ?>%">
-                                                            <span class="visually-hidden">CPU Usage</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex-grow-1">
-                                                        <div class="bg-black rounded p-3 h-100">
-                                                            <canvas id="cpuChartCanvas" style="width: 100%; height: 100%;"></canvas>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="col-md-6">
-                                            <div class="card bg-black bg-opacity-25 border-secondary h-100">
-                                                <div class="card-body d-flex flex-column">
-                                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                                        <span class="text-white fw-medium" data-translate="memory_usage">Memory Usage</span>
-                                                        <span class="text-primary fw-bold" id="memUsageValue">
-                                                            <?= $systemInfo['mem_usage'] ?>%
-                                                        </span>
-                                                    </div>
-                                                    <div class="progress mb-3" style="height: 30px;">
-                                                        <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" 
-                                                             id="memUsageBar" 
-                                                             style="width: <?= min($systemInfo['mem_usage'], 100) ?>%">
-                                                            <span class="visually-hidden">Memory Usage</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex-grow-1">
-                                                        <div class="bg-black rounded p-3 h-100">
-                                                            <canvas id="memChartCanvas" style="width: 100%; height: 100%;"></canvas>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                        if (preg_match('/bitrate: (\d+) kb\/s/', $output, $matches)) {
+                            $bitrate = $matches[1] . ' kbps';
+                        }
+                    } else {
+                        $resolution = 'Resolution cannot be obtained';
+                        $duration = 'Duration cannot be obtained';
+                        $bitrate = 'Bitrate cannot be obtained';
+                    }
+                } elseif ($isAudio) { 
+                    $ffmpegPath = '/usr/bin/ffmpeg';
+                    $cmd = "$ffmpegPath -i \"$path\" 2>&1";
+                    $output = shell_exec($cmd);
 
-                                    <div class="row g-3">
-                                        <div class="col-6 col-lg-3">
-                                            <div class="card bg-black bg-opacity-25 border-secondary h-100">
-                                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-3" style="min-height: 100px;">
-                                                    <div class="h5 text-warning mb-2" id="cpuTempDisplay">--°C</div>
-                                                    <div class="text-white-50 small" data-translate="cpu_temperature">CPU Temperature</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6 col-lg-3">
-                                            <div class="card bg-black bg-opacity-25 border-secondary h-100">
-                                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-3" style="min-height: 100px;">
-                                                    <div class="h5 text-purple mb-2"style="color: #9C27B0;" id="processCountDisplay">--</div>
-                                                    <div class="text-white-50 small" data-translate="running_processes">Running Processes</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6 col-lg-3">
-                                            <div class="card bg-black bg-opacity-25 border-secondary h-100">
-                                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-3" style="min-height: 100px;">
-                                                    <div class="h5 text-cyan mb-2" style="color: #00BCD4;" id="cpuFreqDisplay">--</div>
-                                                    <div class="text-white-50 small" data-translate="cpu_frequency">CPU Frequency</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6 col-lg-3">
-                                            <div class="card bg-black bg-opacity-25 border-secondary h-100">
-                                                <div class="card-body d-flex flex-column align-items-center justify-content-center text-center p-3" style="min-height: 100px;">
-                                                    <div class="h5 text-pink mb-2" id="networkSpeedDisplay">0 KB/s</div>
-                                                    <div class="text-white-50 small" data-translate="network_speed">Network Speed</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="musicSection" class="grid-section" style="display: none;">
-                    <div class="grid-title" style="color: var(--accent-tertiary);">
-                        <i class="fas fa-music"></i>
-                        <span data-translate="audio">Music</span> (<?= count($media['music']) ?> <span data-translate="items">items</span>)
-                    </div>
-                    
-                    <?php if (empty($media['music'])): ?>
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <i class="fas fa-music"></i>
-                        </div>
-                        <p style="margin-top: 15px;" data-translate="no_music_files_found">No music files found</p>
-                    </div>
-                    <?php else: ?>
-                    <div class="media-grid">
-                        <?php foreach ($media['music'] as $item): 
-                            $path = $item['path'];
-                            $file = basename($path);
-                            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                            $size = $item['size'];
-                            
-                            $duration = $bitrate = '';
-                            $ffmpegPath = '/usr/bin/ffmpeg';
-                            $cmd = "$ffmpegPath -i \"$path\" 2>&1";
-                            $output = shell_exec($cmd);
-                            
-                            if ($output) {
-                                preg_match('/Duration:\s*(\d+):(\d+):(\d+)/', $output, $matches) && $duration = sprintf("%02d:%02d:%02d", $matches[1], $matches[2], $matches[3]);
-                                (preg_match('/bitrate:\s*(\d+)\s*kb\/s/', $output, $matches) || preg_match('/Stream.*Audio:.*?(\d+)\s*kb\/s/', $output, $matches)) && $bitrate = $matches[1] . ' kbps';
-                            } else {
-                                $duration = $bitrate = 'Unknown';
-                            }
-                        ?>
-                        <div class="media-item hover-playable" 
-                             data-type="audio"
-                             data-src="?preview=1&path=<?= urlencode($item['path']) ?>"
-                             data-filename="<?= htmlspecialchars($item['safe_name']) ?>"
-                             data-filesize="<?= formatFileSize($item['size']) ?>"
-                             data-duration="<?= $duration ?>"
-                             data-bitrate="<?= $bitrate ?>"
-                             data-resolution="N/A"
-                             data-ext="<?= strtoupper($item['ext']) ?>"
-                             onclick="playMedia('<?= $item['safe_path'] ?>')"
-                             oncontextmenu="showMediaInfo(event, this)">
-                            <div class="media-thumb"><i class="fas fa-music"></i></div>
-                            <div class="media-info">
-                                <div class="media-name" title="<?= htmlspecialchars($item['safe_name'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= $item['safe_name'] ?>
-                                </div>
-                                <div class="media-meta">
-                                    <span><?= strtoupper($item['ext']) ?></span>
-                                    <span><?= formatFileSize($item['size']) ?></span>
-                                </div>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-                </div>
-                
-                <div id="videoSection" class="grid-section" style="display: none;">
-                    <div class="grid-title" style="color: var(--accent-tertiary);">
-                        <i class="fas fa-video"></i>
-                        <span data-translate="video">Video</span> (<?= count($media['video']) ?> <span data-translate="items">items</span>)
-                    </div>
-                    
-                    <?php if (empty($media['video'])): ?>
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <i class="fas fa-video"></i>
-                        </div>
-                        <p style="margin-top: 15px;" data-translate="no_video_files_found">No video files found</p>
-                    </div>
-                    <?php else: ?>
-                    <div class="media-grid">
-                        <?php foreach ($media['video'] as $item): 
-                            $path = $item['path'];
-                            $file = basename($path);
-                            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                            $size = $item['size'];
-                            
-                            $duration = $bitrate = $resolution = '';
-                            $ffmpegPath = '/usr/bin/ffmpeg';
-                            $cmd = "$ffmpegPath -i \"$path\" 2>&1";
-                            $output = shell_exec($cmd);
-                            
-                            if ($output) {
-                                preg_match('/Duration:\s*(\d+):(\d+):(\d+)/', $output, $matches) && $duration = sprintf("%02d:%02d:%02d", $matches[1], $matches[2], $matches[3]);
-                                (preg_match('/bitrate:\s*(\d+)\s*kb\/s/', $output, $matches) || preg_match('/Stream.*Video:.*?(\d+)\s*kb\/s/', $output, $matches)) && $bitrate = $matches[1] . ' kbps';
-                                preg_match('/(\d{3,4})x(\d{3,4})/', $output, $matches) && $resolution = $matches[1] . 'x' . $matches[2];
-                            } else {
-                                $duration = $bitrate = $resolution = 'Unknown';
-                            }
+                    if ($output) {
+                        if (preg_match('/Duration:\s*(\d+):(\d+):(\d+)/', $output, $matches)) {
+                            $duration = sprintf("%02d:%02d:%02d", $matches[1], $matches[2], $matches[3]);
+                        }
 
-                            $previewUrl = "?preview=1&path=" . urlencode($item['path']);
-                        ?>
-                        <div class="media-item hover-playable" 
-                             data-type="video"
-                             data-src="?preview=1&path=<?= urlencode($item['path']) ?>"
-                             data-filename="<?= htmlspecialchars($item['safe_name']) ?>"
-                             data-filesize="<?= formatFileSize($item['size']) ?>"
-                             data-duration="<?= $duration ?>"
-                             data-bitrate="<?= $bitrate ?>"
-                             data-resolution="<?= $resolution ?>"
-                             data-ext="<?= strtoupper($item['ext']) ?>"
-                             onclick="playMedia('<?= $item['safe_path'] ?>')"
-                             oncontextmenu="showMediaInfo(event, this)">
-                             <div class="media-thumb">
-                                 <video class="video-thumbnail" 
-                                     preload="metadata"
-                                     playsinline
-                                     muted
-                                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
-                                 <source src="<?= $previewUrl ?>" type="video/mp4">
-                                 <source src="<?= $previewUrl ?>" type="video/webm">
-                                 <source src="<?= $previewUrl ?>" type="video/ogg">
-                                 <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                                     <i class="fas fa-video"></i>
-                                 </div>
-                             </video>
-                             <div class="video-overlay" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 4px;">
-                                 <i class="fas fa-play text-white" style="font-size: 12px;"></i>
-                             </div>
-                         </div>
-                            <div class="media-info">
-                                <div class="media-name" title="<?= htmlspecialchars($item['safe_name'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= $item['safe_name'] ?>
-                                </div>
-                                <div class="media-meta">
-                                    <span><?= strtoupper($item['ext']) ?></span>
-                                    <span><?= formatFileSize($item['size']) ?></span>
-                                </div>
+                        if (preg_match('/bitrate:\s*(\d+)\s*kb\/s/', $output, $matches) || 
+                           preg_match('/Stream.*Audio:.*?(\d+)\s*kb\/s/', $output, $matches)) {
+                            $bitrate = $matches[1] . ' kbps';
+                        }
+                    } else {
+                        $duration = 'Duration cannot be obtained';
+                        $bitrate = 'Bitrate cannot be obtained';
+                    }
+                }
+            ?>
+            <div class="col" data-filename="<?= htmlspecialchars($file) ?>">
+                <div class="card h-100 shadow-sm position-relative"> 
+                    <div class="file-checkbox-wrapper position-absolute start-0 top-0 m-2 z-2">
+                        <input type="checkbox" 
+                               class="fileCheckbox form-check-input shadow" 
+                               value="stream/<?= htmlspecialchars($file) ?>"
+                               data-size="<?= $size ?>"
+                               style="width: 1.05em !important; height: 1.05em !important; border-radius: 0.35em; transform: scale(1.2);">
+                    </div>
+                    <div class="position-relative">
+                        <?php if ($isMedia): ?>
+                        <div class="preview-container">
+                            <div class="file-type-indicator">
+                                <?php if ($isImage): ?>
+                                    <i class="fas fa-image text-white"></i>
+                                    <span class="text-white small" data-translate="image">Image</span>
+                                <?php elseif ($isVideo): ?>
+                                    <i class="fas fa-play-circle text-white"></i>
+                                    <span class="text-white small" data-translate="video">Video</span>
+                                <?php elseif ($isAudio): ?>
+                                    <i class="fas fa-music text-white"></i>
+                                    <span class="text-white small" data-translate="audio">Audio</span>
+                                <?php endif; ?>
                             </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-                </div>
-                
-                <div id="imageSection" class="grid-section" style="display: none;">
-                    <div class="grid-title" style="color: var(--accent-tertiary);">
-                        <i class="fas fa-image"></i>
-                        <span data-translate="image">Image</span> (<?= count($media['image']) ?> <span data-translate="items">items</span>)
-                    </div>
-                    
-                    <?php if (empty($media['image'])): ?>
-                    <div class="empty-state">
-                        <div class="empty-icon">
-                            <i class="fas fa-image"></i>
-                        </div>
-                        <p style="margin-top: 15px;" data-translate="no_image_files_found">No image files found</p>
-                    </div>
-                    <?php else: ?>
-                    <div class="media-grid">
-                        <?php foreach ($media['image'] as $item): 
-                            $path = $item['path'];
-                            $file = basename($path);
-                            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                            $size = $item['size'];
-                            
-                            $resolution = 'Unknown';
-                            $imageInfo = @getimagesize($path);
-                            $imageInfo && $resolution = $imageInfo[0] . 'x' . $imageInfo[1];
-                        ?>
-                        <div class="media-item" 
-                             data-type="image"
-                             data-src="?preview=1&path=<?= urlencode($item['path']) ?>"
-                             data-filename="<?= htmlspecialchars($item['safe_name']) ?>"
-                             data-filesize="<?= formatFileSize($item['size']) ?>"
-                             data-duration="N/A"
-                             data-bitrate="N/A"
-                             data-resolution="<?= $resolution ?>"
-                             data-ext="<?= strtoupper($item['ext']) ?>"
-                             onclick="playMedia('<?= $item['safe_path'] ?>')"
-                             oncontextmenu="showMediaInfo(event, this)">
-                            <div class="media-thumb">
-                                <img src="?preview=1&path=<?= urlencode($item['path']) ?>" 
-                                     alt="<?= $item['safe_name'] ?>"
-                                     loading="lazy"
-                                     onerror="handleThumbError(this)">
-                            </div>
-                            <div class="media-info">
-                                <div class="media-name" title="<?= htmlspecialchars($item['safe_name'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= $item['safe_name'] ?>
+
+                            <?php if ($isImage): ?>
+                                <img src="stream/<?= htmlspecialchars($file) ?>" 
+                                     class="card-img-top preview-img img-fluid"
+                                     data-bs-toggle="modal" 
+                                     data-bs-target="#previewModal"
+                                     data-type="image"
+                                      data-src="stream/<?= htmlspecialchars($file) ?>">
+                            <?php elseif ($isVideo): ?>
+                                <video class="card-img-top preview-video"
+                                       data-bs-toggle="modal"
+                                       data-bs-target="#previewModal"
+                                       data-type="video"
+                                       data-src="stream/<?= htmlspecialchars($file) ?>">
+                                    <source src="stream/<?= htmlspecialchars($file) ?>" type="video/mp4">
+                                    <source src="stream/<?= htmlspecialchars($file) ?>" type="video/webm">
+                                    <source src="stream/<?= htmlspecialchars($file) ?>" type="video/ogg">
+                                </video>
+                            <?php elseif ($isAudio): ?>
+                                <div class="preview-audio-container" 
+                                     data-bs-toggle="modal" 
+                                     data-bs-target="#previewModal"
+                                     data-src="stream/<?= htmlspecialchars($file) ?>"
+                                     data-type="audio">
+                                    <div class="audio-placeholder">
+                                        <i class="bi bi-file-music fs-1 text-muted"></i>
+                                        <div class="hover-tips" data-translate="hover_to_preview">Click to activate hover preview</div>
+                                    </div>
+                                        <audio class="hover-audio" preload="none"></audio>
                                 </div>
-                                <div class="media-meta">
-                                    <span><?= strtoupper($item['ext']) ?></span>
-                                    <span><?= formatFileSize($item['size']) ?></span>
-                                </div>
+                            <?php endif; ?>
+
+                            <div class="file-info-overlay">
+                                <p class="mb-1 small"><span data-translate="filename">Name：</span> <?= htmlspecialchars($file) ?></p>
+                                <p class="mb-1 small"><span data-translate="filesize">Size：</span> <?= round($size/(1024*1024),2) ?> MB</p>
+                                <?php if ($duration): ?><p class="mb-1 small"><span data-translate="duration">Duration：</span><?= $duration ?></p><?php endif; ?>
+                                <?php if ($resolution): ?><p class="mb-1 small"><span data-translate="resolution">Resolution：</span> <?= $resolution ?></p><?php endif; ?>
+                                <?php if ($bitrate): ?><p class="mb-1 small"><span data-translate="bitrate">Bitrate：</span> <?= $bitrate ?></p><?php endif; ?>
+                                <p class="mb-0 small text-uppercase"><span data-translate="type">Type：</span> <?= $ext ?></p>
                             </div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-                </div>
-                
-                <div id="recentSection" class="grid-section" style="display: none;">
-                    <div class="grid-title">
-                        <i class="fas fa-history"></i>
-                        <span data-translate="recent_play">Recent Play</span>
-                    </div>
-                    
-                    <div class="recent-list" id="recentList">
-                        <?php if (empty($recent)): ?>
-                        <div class="empty-state">
-                            <div class="empty-icon">
-                                <i class="fas fa-play-circle"></i>
-                            </div>
-                            <p style="margin-top: 15px;" data-translate="no_playback_history">No playback history</p>
                         </div>
                         <?php else: ?>
-                            <?php foreach (array_slice($recent, 0, 10) as $file): ?>
-                            <?php
-                            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                            $icon = 'fas fa-image';
-                            if (in_array($ext, $TYPE_EXT['music'])) {
-                                $icon = 'fas fa-music';
-                            } elseif (in_array($ext, $TYPE_EXT['video'])) {
-                                $icon = 'fas fa-video';
-                            }
-                            ?>
-                            <div class="recent-item" onclick="playMedia('<?= htmlspecialchars($file, ENT_QUOTES, 'UTF-8') ?>')">
-                                <div class="recent-icon">
-                                    <i class="<?= $icon ?>"></i>
-                                </div>
-                                <div class="recent-info">
-                                    <div class="recent-name"><?= htmlspecialchars(basename($file), ENT_QUOTES, 'UTF-8') ?></div>
-                                    <div class="recent-path"><?= htmlspecialchars(dirname($file), ENT_QUOTES, 'UTF-8') ?></div>
-                                </div>
+                        <div class="card-body text-center">
+                            <div class="file-type-indicator">
+                                <i class="bi bi-file-earmark-text-fill text-white"></i>
+                                <span class="text-white small" data-translate="document">Document</span>
                             </div>
-                            <?php endforeach; ?>
+                            <i class="bi bi-file-earmark fs-1 text-muted"></i>
+                            <p class="small mb-0"><?= htmlspecialchars($file) ?></p>
+                        </div>
                         <?php endif; ?>
                     </div>
+                    
+                    <div class="card-body pt-2 mt-2">
+                        <div class="d-flex flex-nowrap align-items-center justify-content-between gap-2">                         
+                            <div class="d-flex flex-nowrap gap-1 flex-grow-1" style="min-width: 0;">
+                                <button class="btn btn-danger custom-btn" onclick="handleDeleteConfirmation('<?= urlencode($file) ?>')" data-translate-tooltip="delete"><i class="bi bi-trash"></i></button>
+                                <button class="btn btn-primary custom-btn" data-bs-toggle="modal" data-bs-target="#renameModal-<?= md5($file) ?>" data-translate-tooltip="rename"><i class="bi bi-pencil"></i></button>
+                                <a href="?download=<?= urlencode($file) ?>" class="btn btn-success custom-btn"><i class="bi bi-download" data-translate-tooltip="download"></i></a>   
+                                <button class="btn btn-warning share-btn custom-btn"data-filename="<?= htmlspecialchars($file) ?>"data-bs-toggle="modal"data-bs-target="#shareModal" data-translate-tooltip="shareLinkLabel"><i class="bi bi-share"></i></button>
+                                <?php if ($isMedia): ?>
+                                <button class="btn btn-info set-bg-btn custom-btn" 
+                                        data-src="<?= htmlspecialchars($file) ?>"
+                                        data-type="<?= $isVideo ? 'video' : ($isAudio ? 'audio' : 'image') ?>"
+                                        onclick="setBackground('<?= htmlspecialchars($file) ?>')"
+                                        data-translate-tooltip="set_background">
+                                    <i class="bi <?= $isVideo ? 'bi-play-btn' : ($isAudio ? 'bi-music-note-beamed' : 'bi-image') ?>"></i>
+                                </button>
+                                <?php endif; ?>  
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <div class="resizer" id="playerResizer"></div>
-            <div class="player-area" id="playerArea">
-                <div class="player-header">
-                    <div class="player-title" id="playerTitle">
-                        <i class="fas fa-play"></i>
-                        <span data-translate="media_player">Media Player</span>
-                    </div>
-                    <div class="player-actions">
-                        <button class="player-btn" onclick="toggleFullscreenPlayer()">
-                            <i class="fas fa-expand"></i>
-                        </button>
-                        <button class="player-btn" onclick="closePlayer(); return false;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="player-content">
-                    <audio id="audioPlayer" controls style="display: none;"></audio>
-                    <video id="videoPlayer" controls style="display: none;"></video>
-                    <img id="imageViewer" style="display: none;" />
-                    <div id="playError" style="display: none; text-align: center; padding: 40px;">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ff9800; margin-bottom: 20px;"></i>
-                        <h3 style="margin-bottom: 10px; color: var(--text-primary);" data-translate="cannot_play_media">Cannot play media file</h3>
-                        <p style="color: var(--text-secondary);" data-translate="possible_reasons">Possible reasons:</p>
-                        <ul style="color: var(--text-secondary); text-align: left; margin-top: 10px; padding-left: 20px;">
-                            <li data-translate="reason_unsupported_format">File format not supported by browser</li>
-                            <li data-translate="reason_incorrect_path">File path is incorrect</li>
-                            <li data-translate="reason_server_unreachable">Server cannot access the file</li>
-                        </ul>
-                    </div>
-                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="previewModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" data-translate="preview">Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center position-relative">
+                <div class="loading-spinner"></div>
+                <div id="prevBtn" class="preview-nav-btn"><i class="bi bi-chevron-left"></i></div>
+                <div id="nextBtn" class="preview-nav-btn"><i class="bi bi-chevron-right"></i></div>
+                <img id="previewImage" src="" class="img-fluid d-none">
+                <audio id="previewAudio" controls class="d-none w-100"></audio>
+                <video id="previewVideo" controls class="d-none">
+                    <source id="previewVideoSource" src="" type="video/mp4">
+                </video>
+          </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal" data-translate="cancel">Cancel</button>
+                <button class="btn btn-info me-2" id="fitTogglePreview" data-translate="fit_cover">Cover</button>
+                <button class="btn btn-primary" id="fullscreenToggle" data-translate="toggle_fullscreen">Toggle Fullscreen</button>
             </div>
         </div>
     </div>
 </div>
 
-<div id="mediaContextMenu" class="context-menu" style="display: none;">
-    <div class="context-menu-header">
-        <i class="fas fa-info-circle"></i>
-        <span data-translate="media_info">Media Info</span>
-        <button class="context-menu-close" onclick="hideContextMenu()">
-            <i class="fas fa-times"></i>
-        </button>
+<form id="batchDeleteForm" method="post" style="display: none;">
+    <input type="hidden" name="batch_delete" value="1">
+</form>
     </div>
-    <div class="context-menu-content">
-        <div class="info-item">
-            <span class="info-label" data-translate="filename">Name:</span>
-            <span class="info-value" id="infoFilename"></span>
+
+<div class="modal fade" id="uploadModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" data-translate="batch_upload"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning" data-translate="supported_formats"></div>
+                <form id="uploadForm" method="post" enctype="multipart/form-data">
+                    <div class="drop-zone border rounded p-5 text-center mb-3">
+                        <input type="file" name="upload_file[]" id="upload_file" multiple 
+                               style="opacity: 0; position: absolute; z-index: -1">
+                        <div class="upload-area">
+                            <i class="fas fa-cloud-upload-alt text-primary mb-3" style="font-size: 4rem;"></i>
+                            <div class="fs-5 mb-2" data-translate="drop_files_here"></div>
+                            <div class="text-muted upload-or mb-3" data-translate="or"></div>
+                            <button type="button" class="btn btn-primary btn-lg" id="customUploadButton">
+                                <i class="bi bi-folder2-open me-2"></i><span data-translate="select_files"></span>
+                            </button>
+                            <div class="file-list mt-3"></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" id="updatePhpConfig" data-translate="unlock_php_upload_limit"></button>
+                <button class="btn btn-primary" onclick="$('#uploadForm').submit()" data-translate="upload"></button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal" data-translate="cancel"></button>
+            </div>
         </div>
-        <div class="info-item">
-            <span class="info-label" data-translate="filesize">Size:</span>
-            <span class="info-value" id="infoFilesize"></span>
-        </div>
-        <div class="info-item">
-            <span class="info-label" data-translate="type">Type:</span>
-            <span class="info-value" id="infoType"></span>
-        </div>
-        <div class="info-item" id="durationItem">
-            <span class="info-label" data-translate="duration">Duration:</span>
-            <span class="info-value" id="infoDuration"></span>
-        </div>
-        <div class="info-item" id="resolutionItem">
-            <span class="info-label" data-translate="resolution">Resolution:</span>
-            <span class="info-value" id="infoResolution"></span>
-        </div>
-        <div class="info-item" id="bitrateItem">
-            <span class="info-label" data-translate="bitrate">Bitrate:</span>
-            <span class="info-value" id="infoBitrate"></span>
-        </div>
-        <div class="info-item">
-            <span class="info-label" data-translate="file_path">Path:</span>
-            <span class="info-value" id="infoPath"></span>
-        </div>
-    </div>
-    <div class="context-menu-actions">
-        <button class="context-menu-btn" onclick="playSelectedMedia()">
-            <i class="fas fa-play"></i>
-            <span data-translate="play">Play</span>
-        </button>
-        <button class="context-menu-btn" onclick="closeContextMenu()">
-            <i class="fas fa-times"></i>
-            <span data-translate="close">Close</span>
-        </button>
     </div>
 </div>
 
-<div id="contextMenuOverlay" class="context-menu-overlay" style="display: none;" onclick="hideContextMenu()"></div>
+<?php foreach ($files as $file): ?>
+<div class="modal fade" id="renameModal-<?= md5($file) ?>" tabindex="-1" aria-labelledby="renameModalLabel-<?= md5($file) ?>" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form class="modal-content" method="post" action="">
+            <input type="hidden" name="old_name" value="<?= htmlspecialchars($file, ENT_QUOTES, 'UTF-8') ?>">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="renameModalLabel-<?= md5($file) ?>" data-translate="rename_file">
+                    <?= htmlspecialchars($file, ENT_QUOTES, 'UTF-8') ?>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="newName-<?= md5($file) ?>" data-translate="new_filename">New Filename</label>
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        id="newName-<?= md5($file) ?>" 
+                        name="new_name"
+                        value="<?= htmlspecialchars($file, ENT_QUOTES, 'UTF-8') ?>"
+                        data-translate-title="invalid_filename_chars"
+                    >
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary" name="rename" data-translate="confirm">Rename</button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php endforeach; ?>
+
+<html lang="<?php echo $currentLang; ?>">
+<div class="modal fade" id="langModal" tabindex="-1" aria-labelledby="langModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="langModalLabel" data-translate="select_language">Select Language</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <select id="langSelect" class="form-select" onchange="changeLanguage(this.value)">
+                    <option value="zh" data-translate="simplified_chinese">Simplified Chinese</option>
+                    <option value="hk" data-translate="traditional_chinese">Traditional Chinese</option>
+                    <option value="en" data-translate="english">English</option>
+                    <option value="ko" data-translate="korean">Korean</option>
+                    <option value="vi" data-translate="vietnamese">Vietnamese</option>
+                    <option value="th" data-translate="thailand">Thailand</option>
+                    <option value="ja" data-translate="japanese"></option>
+                    <option value="ru" data-translate="russian"></option>
+                    <option value="de" data-translate="germany">Germany</option>
+                    <option value="fr" data-translate="france">France</option>
+                    <option value="ar" data-translate="arabic"></option>
+                    <option value="es" data-translate="spanish">spanish</option>
+                    <option value="bn" data-translate="bangladesh">Bangladesh</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="close">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="playerModal" tabindex="-1" aria-labelledby="playerModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="playerModalLabel" data-translate="media_player"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body  p-0 m-0 d-flex flex-column" style="height: 65vh;">
+                <div class="row g-3 flex-grow-1 h-100">
+                    <div class="col-md-8 d-flex flex-column h-100">
+                        <div class="ratio ratio-16x9 bg-dark rounded flex-grow-1 position-relative">
+                            <video id="mainPlayer" controls class="w-100 h-100 d-none"></video>
+                            <img id="imagePlayer" class="w-100 h-100 d-none object-fit-contain">
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex flex-column h-100">
+                        <h6 class="pt-3 mb-3" data-translate="playlist"></h6>
+                        <div class="list-group flex-grow-1 overflow-auto" id="playlistContainer"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-danger" id="clearPlaylist">
+                    <i class="bi bi-trash"></i>
+                    <span data-translate="clear_list"></span>
+                </button>
+                <button class="btn btn-sm btn-info" id="fitTogglePlayer">
+                    <i class="bi bi-aspect-ratio"></i>
+                    <span data-translate="fit_cover">Cover</span>
+                </button>
+                <button class="btn btn-sm btn-primary" id="togglePlaylist">
+                    <i class="bi bi-list-ul"></i>
+                    <span data-translate="toggle_list"></span>
+                </button>
+                <button class="btn btn-sm btn-info" id="togglePip" style="display: none;">
+                    <i class="bi bi-pip"></i>
+                    <span data-translate="picture_in_picture"></span>
+                </button>
+                <button class="btn btn-sm btn-success" id="toggleFullscreen">
+                    <i class="bi bi-arrows-fullscreen"></i>
+                    <span data-translate="fullscreen"></span>
+                </button>
+                <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg"></i>
+                    <span data-translate="close"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="updateConfirmModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" data-translate="theme_download"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="currentVersionInfo" class="alert alert-info" data-translate="current_version"></div>
+                <div id="themeVersionInfo" class="alert alert-warning" data-translate="fetching_version"></div>
+                <textarea id="copyCommand" class="form-control" rows="3" readonly>
+opkg update && opkg install wget grep sed && LATEST_FILE=$(wget -qO- https://github.com/Thaolga/openwrt-nekobox/releases/expanded_assets/1.8.8 | grep -o 'luci-theme-spectra_[0-9A-Za-z.\-_]*_all.ipk' | head -n1) && wget -O /tmp/"$LATEST_FILE" "https://github.com/Thaolga/openwrt-nekobox/releases/download/1.8.8/$LATEST_FILE" && opkg install --force-reinstall /tmp/"$LATEST_FILE" && rm -f /tmp/"$LATEST_FILE"
+</textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="cancel"></button>
+                <a id="confirmUpdateLink" href="#" class="btn btn-danger" target="_blank" data-translate="download_local"></a>
+                <button id="copyCommandBtn" class="btn btn-info" data-translate="copy_command"></button>
+                <button id="updatePluginBtn" class="btn btn-primary" data-translate="update_plugin">update_plugin</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade custom-modal" id="ipDetailModal" tabindex="-1" role="dialog" aria-labelledby="ipDetailModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl draggable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ipDetailModalLabel" data-translate="ip_info">IP Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-row">
+                    <span class="detail-label" data-translate="ip_address">IP Address</span>
+                    <span class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" data-translate="location">Location</span>
+                    <span class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" data-translate="isp">ISP</span>
+                    <span class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">ASN</span>
+                    <span class="detail-value"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" data-translate="timezone">Timezone</span>
+                    <span class="detail-value"></span>
+                </div>
+                <div class="detail-row map-coord-row" style="display: none;">
+                    <span class="detail-label" data-translate="latitude_longitude">Coordinates</span>
+                    <span class="detail-value"></span>
+                </div>
+                <div class="detail-row map-container" style="height: 400px; margin-top: 20px; display: none;">
+                    <div id="leafletMap" style="width: 100%; height: 100%;"></div>
+                </div>
+                <h5 style="margin-top: 15px;" data-translate="latency_info">Latency Info</h5>
+                <div class="detail-row" id="delayInfo" style="display: flex; flex-wrap: wrap;"></div>
+                </div>
+              <div class="modal-footer">
+                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-translate="cancel"></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="shareModalLabel" data-translate="createShareLink">Create Share Link</h5>
+        <button type="button" class="btn-close" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="shareForm">
+          <div class="mb-3">
+            <label for="expireTime" class="form-label" data-translate="expireTimeLabel">Expiration Time</label>
+            <select class="form-select" id="expireTime" name="expire">
+              <option value="3600" data-translate="expire1Hour">1 Hour</option>
+              <option value="86400" selected data-translate="expire1Day">1 Day</option>
+              <option value="604800" data-translate="expire7Days">7 Days</option>
+              <option value="2592000" data-translate="expire30Days">30 Days</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="maxDownloads" class="form-label" data-translate="maxDownloadsLabel">Max Downloads</label>
+            <select class="form-select" id="maxDownloads" name="max_downloads">
+              <option value="1" data-translate="max1Download">1 Time</option>
+              <option value="5" data-translate="max5Downloads">5 Time</option>
+              <option value="10" data-translate="max10Downloads">10 Time</option>
+              <option value="0" selected data-translate="maxUnlimited">Unlimited</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="shareLink" class="form-label" data-translate="shareLinkLabel">Share Link</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="shareLink" readonly>
+              <button class="btn btn-outline-secondary" type="button" id="copyLinkBtn" data-translate-title="copyLinkButton">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fa fa-times" aria-hidden="true"></i> <span data-translate="closeButtonFooter">Close</span></button>
+        <button type="button" class="btn btn-warning" id="cleanExpiredBtn"><i class="fa fa-broom" aria-hidden="true"></i> <span data-translate="cleanExpiredButton">Clean Expired</span></button>
+        <button type="button" class="btn btn-danger" id="deleteAllBtn"><i class="fa fa-trash" aria-hidden="true"></i> <span data-translate="deleteAllButton">Delete All</span></button>
+        <button type="button" class="btn btn-primary" id="generateShareBtn"><i class="fa fa-link" aria-hidden="true"></i> <span data-translate="generateLinkButton">Generate Link</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateModalLabel" data-translate="updateModalLabel">Update status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="updateDescription" class="alert alert-info mb-3" data-translate="updateDescription"></div>
+                <pre id="logOutput" style="white-space: pre-wrap; word-wrap: break-word; text-align: left; display: inline-block;" data-translate="waitingMessage">Waiting for the operation to begin...</pre>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-let selectedMediaElement = null;
-let selectedMediaPath = '';
-let hoverAudio = null;
-let hoverVideo = null;
-let userInteracted = false;    
-let imageSwitchTimer = null;  
-let autoNextEnabled = true;   
-let currentMediaList = [];    
-let currentMediaIndex = -1;
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropZone = document.querySelector('.drop-zone');
+        const fileInput = document.getElementById('upload_file');
+        const customButton = document.getElementById('customUploadButton');
+        const fileList = document.querySelector('.file-list');
 
-function handleThumbError(img) {
-    img.style.display = 'none';
-    const thumb = img.parentElement;
-    if (thumb) {
-        thumb.innerHTML = '<i class="fas fa-image"></i>';
-    }
-}
-    
-let currentMedia = {
-    type: null,
-    src: null,
-    path: null,
-    ext: null,
-    wasPlaying: false  
-};
+        customButton.addEventListener('click', () => fileInput.click());
 
-function showSection(sectionId) {
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    const navItem = document.querySelector(`.nav-item[onclick="showSection('${sectionId}')"]`);
-    if (navItem) {
-        navItem.classList.add('active');
-    }
-    
-    document.querySelectorAll('.grid-section').forEach(section => {
-        section.style.display = 'none';
-    });
-    const targetSection = document.getElementById(sectionId + 'Section');
-    if (targetSection) {
-        targetSection.style.display = 'block';
-    }
-    
-    document.querySelector('.media-grid-container').scrollTop = 0;
-    
-    if (sectionId === 'home') {
-        startSystemMonitoring();
-    } else {
-        stopSystemMonitoring();
-    }
-}
-     
-function playMedia(filePath) {    
-    filePath = filePath.trim();
-    
-    const fileName = filePath.split('/').pop();
-    const fileExt = fileName.split('.').pop().toLowerCase();
-    
-    const previewUrl = `?preview=1&path=${encodeURIComponent(filePath)}`;
-    
-    const audioPlayer = document.getElementById('audioPlayer');
-    const videoPlayer = document.getElementById('videoPlayer');
-    const imageViewer = document.getElementById('imageViewer');
-    const playError = document.getElementById('playError');
-    const playerArea = document.getElementById('playerArea');
-    const playerTitle = document.getElementById('playerTitle');
-    
-    if (imageSwitchTimer) {
-        clearInterval(imageSwitchTimer);
-        imageSwitchTimer = null;
-    }
-    
-    audioPlayer.style.display = 'none';
-    videoPlayer.style.display = 'none';
-    imageViewer.style.display = 'none';
-    playError.style.display = 'none';
-    
-    audioPlayer.pause();
-    videoPlayer.pause();
-    
-    playerTitle.innerHTML = `<i class="fas fa-play"></i>${fileName}`;
-    
-    const musicExts = ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'];
-    const videoExts = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'];
-    const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
-    
-    audioPlayer.src = '';
-    videoPlayer.src = '';
-    imageViewer.src = '';
-    
-    audioPlayer.onerror = null;
-    videoPlayer.onerror = null;
-    imageViewer.onerror = null;
-    audioPlayer.onended = null;  
-    videoPlayer.onended = null;  
-    
-    function handleMediaError(element, type) {
-        return function(e) {
-            element.style.display = 'none';
-            playError.style.display = 'block';
-            playerArea.classList.add('active');
-            currentMedia = { type: null, src: null, path: null, ext: null, wasPlaying: false };
-        };
-    }
-    
-    if (musicExts.includes(fileExt)) {
-        audioPlayer.onerror = handleMediaError(audioPlayer, translations['audio'] || 'Audio');
-        audioPlayer.onended = function() {
-            if (autoNextEnabled) {
-                playNextMedia();
-            }
-        };
-        audioPlayer.src = previewUrl;
-        audioPlayer.load();
-        audioPlayer.style.display = 'block';
-        audioPlayer.play().catch(e => {
-            audioPlayer.style.display = 'none';
-            playError.style.display = 'block';
-        });
-        currentMedia = { type: 'audio', src: previewUrl, path: filePath, ext: fileExt, wasPlaying: false };
-        
-        updateCurrentMediaList('music', filePath);
-    } 
-    else if (videoExts.includes(fileExt)) {
-        videoPlayer.onerror = handleMediaError(videoPlayer, translations['video'] || 'Video');
-        videoPlayer.onended = function() {
-            if (autoNextEnabled) {
-                playNextMedia();
-            }
-        };
-        videoPlayer.src = previewUrl;
-        videoPlayer.load();
-        videoPlayer.style.display = 'block';
-        videoPlayer.play().catch(e => {
-            videoPlayer.style.display = 'none';
-            playError.style.display = 'block';
-        });
-        currentMedia = { type: 'video', src: previewUrl, path: filePath, ext: fileExt, wasPlaying: false };
-        
-        updateCurrentMediaList('video', filePath);
-    } 
-    else if (imageExts.includes(fileExt)) {
-        imageViewer.onerror = handleMediaError(imageViewer, translations['image'] || 'Image');
-        imageViewer.src = previewUrl;
-        imageViewer.style.display = 'block';
-        currentMedia = { type: 'image', src: previewUrl, path: filePath, ext: fileExt, wasPlaying: false };
-        
-        updateCurrentMediaList('image', filePath);
-        
-        if (autoNextEnabled) {
-            startImageAutoSwitch();
-        }
-    } else {
-        playError.style.display = 'block';
-        playerArea.classList.add('active');
-    }
-    
-    playerArea.classList.add('active');
-
-    setPlayerTitle(fileName);    
-    saveToRecent(filePath);
-}
-
-function setPlayerTitle(fileName) {
-    const playerTitle = document.getElementById('playerTitle');
-    
-    const icon = playerTitle.querySelector('i');
-    playerTitle.innerHTML = '';
-    if (icon) {
-        playerTitle.appendChild(icon);
-    } else {
-        const playIcon = document.createElement('i');
-        playIcon.className = 'fas fa-play';
-        playerTitle.appendChild(playIcon);
-    }
-    
-    const textSpan = document.createElement('span');
-    textSpan.className = 'player-title-text truncate';
-    textSpan.textContent = fileName;
-    textSpan.title = fileName;
-    
-    playerTitle.appendChild(textSpan);
-    
-    document.getElementById('playerArea').style.display = 'block';
-}
-    
-function updateCurrentMediaList(category, filePath) {
-    try {
-        const mediaLists = {
-            'music': <?php echo json_encode(array_column($media['music'], 'path')); ?>,
-            'video': <?php echo json_encode(array_column($media['video'], 'path')); ?>,
-            'image': <?php echo json_encode(array_column($media['image'], 'path')); ?>
-        };
-        
-        currentMediaList = mediaLists[category] || [];
-        currentMediaIndex = currentMediaList.indexOf(filePath);
-        
-    } catch (e) {
-        currentMediaList = [];
-        currentMediaIndex = -1;
-    }
-}
-    
-function startImageAutoSwitch() {
-    if (imageSwitchTimer) {
-        clearInterval(imageSwitchTimer);
-    }
-    
-    if (!autoNextEnabled || currentMediaList.length < 2) {
-        return;
-    }
-        
-    imageSwitchTimer = setInterval(() => {
-        playNextMedia();
-    }, 5000);
-}
-    
-function playNextMedia() {
-    if (!autoNextEnabled) {
-        return;
-    }
-
-    if (currentMediaList.length === 0 || currentMediaIndex === -1) {
-        return;
-    }
-    
-    const nextIndex = (currentMediaIndex + 1) % currentMediaList.length;
-    const nextFilePath = currentMediaList[nextIndex];
-    
-    if (nextFilePath) {
-        playMedia(nextFilePath);
-    }
-}
-    
-function playPreviousMedia() {
-    if (!autoNextEnabled) {
-        return;
-    }
-
-    if (currentMediaList.length === 0 || currentMediaIndex === -1) {
-        return;
-    }
-    
-    const prevIndex = (currentMediaIndex - 1 + currentMediaList.length) % currentMediaList.length;
-    const prevFilePath = currentMediaList[prevIndex];
-    
-    if (prevFilePath) {
-        playMedia(prevFilePath);
-    }
-}
-    
-function toggleAutoNext() {
-    autoNextEnabled = !autoNextEnabled;
-    const toggleBtn = document.getElementById('autoNextToggle');
-    if (toggleBtn) {
-        toggleBtn.innerHTML = autoNextEnabled ? 
-            `<i class="fas fa-toggle-on"></i> ${translations['auto_play'] || 'Auto Play'}` : 
-            `<i class="fas fa-toggle-off"></i> ${translations['auto_play'] || 'Auto Play'}`;
-    }
-    
-    showLogMessage(autoNextEnabled ? 
-        (translations['auto_play_enabled'] || 'Auto play enabled') : 
-        (translations['auto_play_disabled'] || 'Auto play disabled'));
-    
-    if (currentMedia.type === 'image') {
-        if (autoNextEnabled && currentMediaList.length > 1) {
-            startImageAutoSwitch();
-        } else {
-            if (imageSwitchTimer) {
-                clearInterval(imageSwitchTimer);
-                imageSwitchTimer = null;
-            }
-        }
-    }
-}
-    
-function initAutoPlayToggle() {
-    const actions = document.querySelector('.actions');
-    if (actions) {
-        const toggleBtn = document.createElement('button');
-        toggleBtn.id = 'autoNextToggle';
-        toggleBtn.className = 'action-btn';
-        const icon = autoNextEnabled ? 'fa-toggle-on' : 'fa-toggle-off';
-        toggleBtn.innerHTML = `<i class="fas ${icon}"></i> <span>${translations['auto_play'] || 'Auto Play'}</span>`;
-        toggleBtn.onclick = toggleAutoNext;
-        actions.insertBefore(toggleBtn, actions.firstChild);
-    }
-}
-    
-function saveToRecent(filePath) {
-    try {
-        let recent = JSON.parse(localStorage.getItem('recent_media') || '[]');
-        
-        recent = recent.filter(f => f !== filePath);
-        
-        recent.unshift(filePath);
-        
-        if (recent.length > <?= $RECENT_MAX ?>) {
-            recent = recent.slice(0, <?= $RECENT_MAX ?>);
-        }
-        
-        localStorage.setItem('recent_media', JSON.stringify(recent));
-        
-        updateRecentList();
-    } catch (e) {
-    }
-}
-    
-function updateRecentList() {
-    try {
-        const recent = JSON.parse(localStorage.getItem('recent_media') || '[]');
-        const recentList = document.getElementById('recentList');
-        
-        if (!recentList) return;
-        
-        if (recent.length === 0) {
-            recentList.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-play-circle"></i>
+        function updateFileList() {
+            fileList.innerHTML = "";
+            Array.from(fileInput.files).forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-list-item';
+                fileItem.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-file-earmark"></i> ${file.name}
                     </div>
-                    <p style="margin-top: 15px;">${translations['no_playback_history'] || 'No playback history'}</p>
-                </div>`;
-            return;
+                    <i class="bi bi-x remove-file"></i>
+                `;
+
+                fileItem.querySelector('.remove-file').addEventListener('click', () => {
+                    fileItem.remove();
+                    removeFileFromInput(file);
+                });
+
+                fileList.appendChild(fileItem);
+            });
         }
-        
-        const musicExts = ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'];
-        const videoExts = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'];
-        
-        recentList.innerHTML = recent.slice(0, 20).map(file => {
-            const ext = file.split('.').pop().toLowerCase();
-            let icon = 'fas fa-image';
-            if (musicExts.includes(ext)) icon = 'fas fa-music';
-            else if (videoExts.includes(ext)) icon = 'fas fa-video';
+
+        function removeFileFromInput(fileToRemove) {
+            const dataTransfer = new DataTransfer();
+            Array.from(fileInput.files).forEach(file => {
+                if (file !== fileToRemove) {
+                    dataTransfer.items.add(file);
+                }
+            });
+            fileInput.files = dataTransfer.files;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        fileInput.addEventListener('change', updateFileList);
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        }
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                const dataTransfer = new DataTransfer();
             
-            const safePath = file.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            const safeName = file.split('/').pop().replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const safeDir = file.split('/').slice(0, -1).join('/').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                if (fileInput.files) {
+                    Array.from(fileInput.files).forEach(file => 
+                        dataTransfer.items.add(file)
+                    );
+                }
             
-            return `
-            <div class="recent-item" onclick="playMedia('${safePath}')">
-                <div class="recent-icon">
-                    <i class="${icon}"></i>
-                </div>
-                <div class="recent-info">
-                    <div class="recent-name">${safeName}</div>
-                    <div class="recent-path">${safeDir}</div>
-                </div>
-            </div>`;
-        }).join('');
-    } catch (e) {
+                Array.from(files).forEach(file => 
+                    dataTransfer.items.add(file)
+                );
+            
+                fileInput.files = dataTransfer.files;
+                updateFileList();
+            }
+        });
+    });
+</script>
+
+<script>
+    $(document).ready(function() {
+        $('#selectAll').change(function() {
+            $('.fileCheckbox').prop('checked', this.checked);
+            updateSelectionInfo();
+        });
+
+        $('.fileCheckbox').change(function() {
+            $('#selectAll').prop('checked', $('.fileCheckbox:checked').length === $('.fileCheckbox').length);
+            updateSelectionInfo();
+        });
+
+        $('#selectAllBtn').click(function() {
+            const allChecked = $('.fileCheckbox:checked').length === $('.fileCheckbox').length;
+            $('.fileCheckbox').prop('checked', !allChecked).trigger('change');
+        });
+
+        $('#batchDeleteBtn').click(function() {
+            const files = $('.fileCheckbox:checked').map(function() { return $(this).val(); }).get();
+            if (files.length === 0) { 
+                alert(translations['select_files_to_delete'] || 'Please select files to delete first');  
+                return; 
+            }
+            const confirmText = (translations['confirm_batch_delete'] || 'Are you sure you want to delete the selected %d files?').replace('%d', files.length);
+            showConfirmation(confirmText, () => {
+                const batchDeleteForm = $('#batchDeleteForm');
+                batchDeleteForm.empty();
+                batchDeleteForm.append('<input type="hidden" name="batch_delete" value="1">');
+                files.forEach(file => {
+                    batchDeleteForm.append(`<input type="hidden" name="filenames[]" value="${file}">`);
+                });
+                batchDeleteForm.submit();
+            });
+        });
+
+        function updateSelectionInfo() {
+            const checked = $('.fileCheckbox:checked');
+            const count = checked.length;
+            const totalSize = checked.toArray().reduce((sum, el) => sum + parseInt($(el).data('size')), 0);
+            if (count > 0) {
+                $('#toolbar').removeClass('d-none');
+                $('#selectedInfo').html((translations['file_summary'] || 'Selected %d files，total %s MB').replace('%d', count).replace('%s', (totalSize / (1024 * 1024)).toFixed(2)));
+            } else {
+                $('#toolbar').addClass('d-none');
+            }
+        }
+
+        $('.preview-img').click(function() {
+            const src = $(this).data('src');
+            $('#previewImage').attr('src', src).removeClass('d-none');
+            $('#previewVideo').addClass('d-none');
+        });
+
+        $('.preview-video').click(function() {
+            const src = $(this).data('src');
+            $('#previewVideoSource').attr('src', src);
+            $('#previewVideo')[0].load();
+            $('#previewVideo').removeClass('d-none');
+            $('#previewImage').addClass('d-none');
+        });
+
+        $('#previewModal').on('hidden.bs.modal', function() {
+            $('#previewVideo')[0].pause();
+        });
+
+        $('.set-bg-btn').click(function() {
+            const src = $(this).data('src');
+            const type = $(this).data('type');
+            setBackground(src, type);
+        });
+
+        $('#clearBackgroundBtn').click(function() {
+            const confirmMessage = translations['confirm_clear_background'] || 'Are you sure you want to clear the background?';
+            speakMessage(translations['confirm_clear_background'] || 'Are you sure you want to clear the background?');
+            showConfirmation(confirmMessage, () => {
+                setTimeout(() => {
+                    clearExistingBackground();
+                    localStorage.removeItem('phpBackgroundSrc');
+                    localStorage.removeItem('phpBackgroundType');
+                    localStorage.removeItem('backgroundSet');
+
+                    const clearedMsg = translations['background_cleared'] || 'Background cleared!';
+                    showLogMessage(clearedMsg);
+                    speakMessage(clearedMsg);
+
+                    setTimeout(() => {
+                          window.top.location.href = "/cgi-bin/luci/admin/spectra/media";
+                    }, 3000);
+
+                }, 0);
+            });
+        });
+
+        function setBackground(src, type) {
+            if (type === 'image') {
+                setImageBackground(src);
+            } else if (type === 'video') {
+                setVideoBackground(src);
+            }
+        }
+    });
+
+    $('#batchDeleteForm').submit(function(e) {
+        e.preventDefault();
+        const formData = $(this).serialize();
+        $.post('', formData, function(response) {
+            let message = '';
+            if (response.success) {
+                message = translations['batch_delete_success'] || '✅ Batch delete successful';
+                showLogMessage(message);
+                speakMessage(message);
+                setTimeout(() => {
+                      location.reload();
+                }, 2500);
+            } else {
+                message = translations['batch_delete_failed'] || '❌ Batch delete failed';
+                showLogMessage(message);
+                speakMessage(message);
+            }
+        }, 'json');
+    });
+
+    function setImageBackground(src) {
+        clearExistingBackground();
+        document.body.style.background = `url('/spectra/stream/${src}') no-repeat center center fixed`;
+        document.body.style.backgroundSize = 'cover';
+        localStorage.setItem('phpBackgroundSrc', src);
+        localStorage.setItem('phpBackgroundType', 'image');
+        localStorage.setItem('redirectAfterImage', 'true');
+        checkAndReload();
+    }
+
+    function setVideoBackground(src, isPHP = false) {
+        clearExistingBackground();
+        let existingVideoTag = document.getElementById("background-video");
+        if (existingVideoTag) {
+            existingVideoTag.src = `/spectra/stream/${src}`;
+        } else {
+            let videoTag = document.createElement("video");
+            videoTag.className = "video-background";
+            videoTag.id = "background-video";
+            videoTag.autoplay = true;
+            videoTag.loop = true;
+            videoTag.muted = localStorage.getItem('videoMuted') === 'true';
+            videoTag.playsInline = true;
+            videoTag.innerHTML = `
+                <source src="/spectra/stream/${src}" type="video/mp4">
+                Your browser does not support the video tag.
+            `;
+            document.body.prepend(videoTag);
+
+            let styleTag = document.querySelector("#video-style");
+            if (!styleTag) {
+                styleTag = document.createElement("style");
+                styleTag.id = "video-style";
+                document.head.appendChild(styleTag);
+            }
+            styleTag.innerHTML = `
+                body {
+                    background: transparent !important;
+                    margin: 0;
+                    padding: 0;
+                    height: 100vh;
+                    overflow: hidden;
+                }
+                .video-background {
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    width: auto;
+                    height: auto;
+                    min-width: 100%;
+                    min-height: 100%;
+                    transform: translate(-50%, -50%);
+                    object-fit: cover;
+                    z-index: -1;
+                }
+                .video-background + .wrapper span {
+                    display: none !important;
+                }
+            `;
+        }
+        localStorage.setItem('phpBackgroundSrc', src);
+        localStorage.setItem('phpBackgroundType', 'video');
+        if (isPHP) {
+            document.querySelector('.sound-toggle div').textContent = '🔊';
+            videoTag.muted = false;
+        }
+        localStorage.setItem('redirectAfterVideo', 'true');
+        checkAndReload();
+    }
+
+    function clearExistingBackground() {
+        document.body.style.background = ''; 
+        let existingVideoTag = document.getElementById("background-video");
+        if (existingVideoTag) {
+            existingVideoTag.remove(); 
+        }
+        let styleTag = document.querySelector("#video-style");
+        if (styleTag) {
+            styleTag.remove(); 
+        }
+    }
+
+    function checkAndReload() {
+        if (!localStorage.getItem('backgroundSet')) {
+            localStorage.setItem('backgroundSet', 'true');
+            location.reload();
+        }
+    }
+
+    if (phpBackgroundSrc && phpBackgroundType) {
+        if (phpBackgroundType === 'image') {
+            setImageBackground(phpBackgroundSrc);
+        } else if (phpBackgroundType === 'video') {
+            setVideoBackground(phpBackgroundSrc, true);
+        }
+    }
+
+    document.querySelectorAll('.preview-video').forEach(video => {
+        video.addEventListener('mouseenter', () => {
+            video.play().catch(() => {})
+        })
+        video.addEventListener('mouseleave', () => {
+            video.pause()
+            video.currentTime = 0
+        })
+    });
+
+    $(document).ready(function () {
+        $(".set-bg-btn").click(function () {
+            const bgSrc = $(this).data("src");
+            const bgType = $(this).data("type");
+            setTimeout(function () {
+                location.reload();
+            }, 1000);
+        });
+    });
+
+    window.addEventListener('load', function () {
+        if (localStorage.getItem('redirectAfterImage') === 'true') {
+            localStorage.removeItem('redirectAfterImage');
+            setTimeout(() => {
+                window.top.location.href = "/cgi-bin/luci/admin/spectra/media?bg=image";
+            }, 3000);
+        } else if (localStorage.getItem('redirectAfterVideo') === 'true') {
+            localStorage.removeItem('redirectAfterVideo');
+            setTimeout(() => {
+                window.top.location.href = "/cgi-bin/luci/admin/spectra/media?bg=video";
+            }, 3000);
+        }
+    });
+</script>
+
+<script>
+    document.getElementById("updatePhpConfig").addEventListener("click", function() {
+        const confirmText = translations['confirm_update_php'] || "Are you sure you want to update PHP configuration?";
+        speakMessage(confirmText);
+        showConfirmation(confirmText, () => {
+            fetch("update_php_config.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const msg = data.message || "Configuration updated successfully.";
+                showLogMessage(msg);
+                speakMessage(msg);
+            })
+            .catch(error => {
+                const errMsg = translations['request_failed'] || ("Request failed: " + error.message);
+                showLogMessage(errMsg);
+                speakMessage(errMsg);
+            });
+        });
+    });
+</script>
+
+<script>
+    let mediaInteraction = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const previewModal = document.getElementById('previewModal');
+        const modalAudio = document.getElementById('previewAudio');
+
+        previewModal.addEventListener('show.bs.modal', function(event) {
+            const trigger = event.relatedTarget;
+            const src = trigger.dataset.src;
+            const mediaType = trigger.dataset.type || '';
+
+            if (mediaType === 'audio') {
+                modalAudio.innerHTML = ''; 
+                const source = document.createElement('source');
+                source.src = src;
+                source.type = `audio/${src.split('.').pop()}`;
+                modalAudio.appendChild(source);
+                modalAudio.load();
+                modalAudio.classList.remove('d-none'); 
+            } else {
+                modalAudio.classList.add('d-none'); 
+            }
+        });
+
+        previewModal.addEventListener('hidden.bs.modal', () => {
+            modalAudio.pause(); 
+        });
+
+        document.querySelectorAll('.preview-audio-container').forEach(container => {
+            const audio = new Audio();
+            audio.src = container.dataset.src;
+            audio.volume = 0.5;
+            const hoverTips = container.querySelector('.hover-tips'); 
+
+            container.addEventListener('mouseenter', () => {
+                if (!mediaInteraction) {
+                    container.classList.add('needs-interact');
+                    return;
+                }
+                audio.play().catch(() => {
+                    container.classList.add('needs-interact');
+                });
+            });
+
+            container.addEventListener('mouseleave', () => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+
+            container.addEventListener('click', (e) => {
+                if (!mediaInteraction) {
+                    e.preventDefault();
+                    mediaInteraction = true;
+                    document.body.classList.add('media-active');
+                    container.classList.remove('needs-interact');
+                    if (hoverTips) hoverTips.style.display = 'none';
+                }
+            });
+        });
+
+        document.addEventListener('click', () => {
+            if (!mediaInteraction) {
+                mediaInteraction = true;
+                document.body.classList.add('media-active');
+                document.querySelectorAll('.hover-tips').forEach(tip => tip.style.display = 'none');
+            }
+        });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const player = document.getElementById('mainPlayer');
+        const imagePlayer = document.getElementById('imagePlayer');
+        const playlistContainer = document.getElementById('playlistContainer');
+        let playlist = JSON.parse(localStorage.getItem('mediaPlaylist') || '[]');
+        let currentIndex = 0;
+        let imageTimer = null;
+
+        function savePlaylist() {
+            localStorage.setItem('mediaPlaylist', JSON.stringify(playlist));
+        }
+
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            playlist.forEach((file, index) => {
+                const item = document.createElement('a');
+                item.className = `list-group-item list-group-item-action d-flex justify-content-between 
+                                align-items-center ${index === currentIndex ? 'active' : ''}`;
+                item.innerHTML = `
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-secondary">${index + 1}</span>
+                        <span class="text-truncate">${file.name}</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <small class="text-muted">${file.type.toUpperCase()}</small>
+                        <button class="btn btn-sm btn-danger p-0 delete-item"><i class="bi bi-x"></i></button>
+                    </div>
+                `;
+                item.onclick = () => playMedia(index);
+                item.querySelector('.delete-item').onclick = (e) => {
+                    e.stopPropagation();
+                    playlist.splice(index, 1);
+                    if(currentIndex >= index) currentIndex--;
+                    savePlaylist();
+                    renderPlaylist();
+                    if(index === currentIndex) playNext();
+                };
+                playlistContainer.appendChild(item);
+            });
+
+            setTimeout(() => {
+                const activeItem = playlistContainer.querySelector('.list-group-item.active');
+                if (activeItem) {
+                    activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }, 50);
+        }
+
+        function playMedia(index) {
+            currentIndex = index;
+            const media = playlist[index];
+        
+            player.classList.add('d-none');
+            imagePlayer.classList.add('d-none');
+            clearTimeout(imageTimer);
+
+            if(media.type === 'image') {
+                imagePlayer.src = media.url;
+                imagePlayer.classList.remove('d-none');
+                imageTimer = setTimeout(playNext, 5000);
+            } else {
+                player.src = media.url;
+                player.classList.remove('d-none');
+                player.load();
+                player.play();
+            }
+
+            renderPlaylist();
+        }
+
+        function findNextValidIndex(startIndex) {
+            let newIndex = startIndex;
+             do {
+                newIndex = (newIndex + 1) % playlist.length;
+                if(newIndex === startIndex) return -1; 
+            } while(playlist[newIndex].type === 'image')
+            return newIndex;
+        }
+
+        function playNext() {
+            if(playlist.length === 0) return;
+        
+            const nextIndex = findNextValidIndex(currentIndex);
+            if(nextIndex === -1) return; 
+        
+            playMedia(nextIndex);
+        }
+
+        document.getElementById('openPlayerBtn').addEventListener('click', () => {
+            const selectedFiles = Array.from(document.querySelectorAll('.fileCheckbox:checked'))
+                .map(checkbox => {
+                    const card = checkbox.closest('.card');
+                    return {
+                        name: checkbox.value,
+                        url: checkbox.value,
+                        type: card.querySelector('video') ? 'video' :
+                              card.querySelector('audio') ? 'audio' :
+                              card.querySelector('img') ? 'image' : 'file'
+                    };
+                });
+
+            const validFiles = selectedFiles.filter(f => ['video','audio','image'].includes(f.type));
+            validFiles.forEach(file => {
+                if (!playlist.some(existing => existing.url === file.url)) {
+                    playlist.push(file);
+                }
+            });
+
+            const firstPlayable = playlist.findIndex(f => f.type !== 'image');
+            if(firstPlayable !== -1) {
+                currentIndex = firstPlayable - 1; 
+                playNext();
+            }
+
+            savePlaylist();
+            renderPlaylist();
+        });
+
+        document.getElementById('clearPlaylist').addEventListener('click', () => {
+            playlist = [];
+            currentIndex = 0;
+            player.src = '';
+            imagePlayer.src = '';
+            savePlaylist();
+            renderPlaylist();
+        });
+
+        player.addEventListener('ended', playNext);
+        renderPlaylist();
+    });
+</script> 
+<style>
+.col-md-8, .col-md-12 {
+	transition: all 0.3s ease;
+}
+
+.fullscreen-modal {
+	width: 100vw !important;
+	height: 100vh !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	max-width: none !important;
+}
+
+.fullscreen-modal .modal-content {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.fullscreen-modal .modal-header,
+.fullscreen-modal .modal-footer {
+	flex-shrink: 0;
+	min-height: 60px;
+}
+
+.fullscreen-modal .modal-body {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 10px;
+}
+
+#previewVideo {
+	max-width: 100%;
+	max-height: 100%;
+	width: auto;
+        height: 100% !important; 
+	object-fit: contain;
+}
+
+.modal-content:fullscreen .row {
+	--playlist-width: 450px;
+}
+
+.modal-content:fullscreen .col-md-8 {
+	flex: 1 1 calc(100% - var(--playlist-width)) !important;
+	max-width: calc(100% - var(--playlist-width)) !important;
+}
+
+.modal-content:fullscreen .col-md-4 {
+	flex: 0 0 var(--playlist-width) !important;
+	max-width: var(--playlist-width) !important;
+	transition: all 0.3s;
+}
+
+.modal-content:fullscreen #playlistContainer {
+	font-size: 0.9em;
+	padding: 0 0.5rem;
+}
+
+.col-md-4 {
+	transition: all 0.3s ease-in-out;
+}
+
+.modal-content:fullscreen .col-md-8.col-md-12 {
+	flex: 0 0 100% !important;
+	max-width: 100% !important;
+}
+
+.modal-content:fullscreen {
+	width: 100vw !important;
+	height: 100vh !important;
+	border-radius: 0 !important;
+	margin: 0 !important;
+}
+
+@media (max-width: 768px) {
+	#togglePlaylist {
+		display: none;
+	}
+}
+
+@media (max-width: 767px) {
+	#playerModal .col-md-4 h6 {
+		text-align: left;
+		margin-bottom: 10px;
+	}
+}
+</style>
+
+<script>
+function calculateAvailableHeight() {
+  const header = document.querySelector('header');
+  const footer = document.querySelector('footer');
+  const headerHeight = header ? header.offsetHeight : 0;
+  const footerHeight = footer ? footer.offsetHeight : 0;
+  return window.innerHeight - headerHeight - footerHeight;
+}
+
+document.getElementById("fullscreenToggle").addEventListener("click", function () {
+    const modalDialog = document.querySelector("#previewModal .modal-xl"); 
+    const btn = document.getElementById("fullscreenToggle");
+
+    if (!document.fullscreenElement) {
+        modalDialog.dataset.originalWidth = modalDialog.style.width;
+        modalDialog.dataset.originalHeight = modalDialog.style.height;
+        
+        if (modalDialog.requestFullscreen) modalDialog.requestFullscreen();
+        
+        modalDialog.classList.add("fullscreen-modal");
+        btn.innerText = translations['exit_fullscreen'] || 'Exit Fullscreen';
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        
+        modalDialog.classList.remove("fullscreen-modal");
+        if (window.innerWidth <= 576) {
+            modalDialog.style.height = `${calculateAvailableHeight()}px`;
+        } else {
+            modalDialog.style.width = modalDialog.dataset.originalWidth;
+            modalDialog.style.height = modalDialog.dataset.originalHeight;
+        }
+        btn.innerText = translations['enter_fullscreen'] || 'Enter Fullscreen';
+    }
+});
+
+function handleFullscreenChange() {
+    const isFullscreen = !!document.fullscreenElement;
+    const modalDialog = document.querySelector("#previewModal .modal-xl");
+    const btn = document.getElementById("fullscreenToggle");
+
+    if (!isFullscreen && modalDialog) {
+        modalDialog.classList.remove("fullscreen-modal");
+        if (window.innerWidth <= 576) {
+            modalDialog.style.height = `${calculateAvailableHeight()}px`;
+            window.addEventListener('resize', handleVerticalResize);
+        } else {
+            modalDialog.style.width = modalDialog.dataset.originalWidth;
+            modalDialog.style.height = modalDialog.dataset.originalHeight;
+        }
+        btn.innerText = translations['enter_fullscreen'] || 'Enter Fullscreen';
     }
 }
+
+function handleVerticalResize() {
+    if (window.innerWidth > 576) return;
+    const modalDialog = document.querySelector("#previewModal .modal-xl");
+    modalDialog.style.height = `${calculateAvailableHeight()}px`;
+}
+
+document.addEventListener('fullscreenchange', handleFullscreenChange);
+window.addEventListener('resize', handleVerticalResize);
+</script>
+
+<style>
+.modal-xl {
+    max-width: 1140px;
+    width: 80%;
+    margin: 1rem auto; 
+    transition: height 0.3s ease; 
+}
+
+.fullscreen-modal {
+    max-width: none !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0;
+}
+
+.modal-footer {
+    position: relative; 
+    height: 60px;
+    flex-shrink: 0; 
+    border: none !important; 
+    box-shadow: none !important;
+    background-color: var(--header-bg) !important;
+    border-top: 1px solid var(--border-color) !important;
+}
+
+#previewVideo {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: fill;
+}
+
+@media (max-width: 576px) {
+    .modal-xl:not(.fullscreen-modal) {
+        max-height: calc(100vh - var(--header-height) - var(--footer-height));
+        overflow-y: auto;
+    }
+}
+
+#previewModal .modal-body {
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+#previewModal .modal-content {
+    border-radius: 0.3rem;
+    box-shadow: var(--bs-box-shadow);
+}
+
+#previewModal .modal-footer {
+    background-color: var(--header-bg) !important;
+    border-top: 1px solid var(--border-color) !important;
+}
+</style>
+
+<script>
+const playlistToggleBtn = document.getElementById('togglePlaylist');
+const playlistColumn = document.querySelector('.col-md-4');
+const fullscreenBtn = document.getElementById('toggleFullscreen');
+const modalContent = document.querySelector('#playerModal .modal-content');
+const videoElement = document.querySelector('#videoElement'); 
+const pipButton = document.getElementById('togglePip');
+const mainPlayer = document.getElementById('mainPlayer');
+let isPlaylistVisible = true;
+
+if ('pictureInPictureEnabled' in document) {
+    pipButton.style.display = 'inline-block'; 
     
-function closePlayer() {
-    const playerArea = document.getElementById('playerArea');
-    const audioPlayer = document.getElementById('audioPlayer');
-    const videoPlayer = document.getElementById('videoPlayer');
-    const imageViewer = document.getElementById('imageViewer');
+    pipButton.addEventListener('click', async () => {
+        try {
+            if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+            } else {
+                if (mainPlayer.classList.contains('d-none')) {
+                    return alert(translations['pip_not_supported'] || 'Current media does not support Picture-in-Picture');
+                }
+                await mainPlayer.requestPictureInPicture();
+            }
+        } catch (error) {
+            console.error(translations['pip_operation_failed'] || 'Picture-in-Picture operation failed:', error);
+        }
+    });
+
+    mainPlayer.addEventListener('enterpictureinpicture', () => {
+        pipButton.querySelector('i').className = 'bi bi-pip-fill';
+        pipButton.innerHTML = pipButton.querySelector('i').outerHTML + 
+            ` ${translations['exit_picture_in_picture'] || 'Exit Picture-in-Picture'}`;
+    });
+
+    mainPlayer.addEventListener('leavepictureinpicture', () => {
+        pipButton.querySelector('i').className = 'bi bi-pip';
+        pipButton.innerHTML = pipButton.querySelector('i').outerHTML + 
+            ` ${translations['picture_in_picture'] || 'Picture-in-Picture'}`;
+    });
+}
+
+playlistToggleBtn.addEventListener('click', () => {
+    isPlaylistVisible = !isPlaylistVisible;
+    playlistColumn.classList.toggle('d-none');
+    
+    const icon = playlistToggleBtn.querySelector('i');
+    icon.className = isPlaylistVisible ? 'bi bi-list-ul' : 'bi bi-layout-sidebar';
+    playlistToggleBtn.innerHTML = icon.outerHTML + ' ' + 
+        (isPlaylistVisible ? translations['hide_playlist'] || 'Hide Playlist' : translations['show_playlist'] || 'Show Playlist');
+    
+    const mainColumn = document.querySelector('.col-md-8');
+    mainColumn.classList.toggle('col-md-12');
+    
+    checkFullscreenState(); 
+});
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        modalContent.requestFullscreen().then(() => {
+            updateFullscreenButton(true); 
+            checkFullscreenState();
+        }).catch(console.error);
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+function updateFullscreenButton(isFullscreen) {
+    const icon = fullscreenBtn.querySelector('i');
+    if (isFullscreen) {
+        icon.className = 'bi bi-fullscreen-exit';
+        fullscreenBtn.innerHTML = icon.outerHTML + ` ${translations['exit_fullscreen'] || 'Exit Fullscreen'}`;
+    } else {
+        icon.className = 'bi bi-arrows-fullscreen';
+        fullscreenBtn.innerHTML = icon.outerHTML + ` ${translations['enter_fullscreen'] || 'Enter Fullscreen'}`;
+    }
+}
+
+document.addEventListener('fullscreenchange', () => {
+    const isFullscreen = !!document.fullscreenElement;
+    updateFullscreenButton(isFullscreen); 
+    checkFullscreenState();
+});
+
+function checkFullscreenState() {
+    const modalContent = document.querySelector('#playerModal .modal-content');
+    const videoContainer = modalContent.querySelector('.video-container');
     
     if (document.fullscreenElement) {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        }
-    }
-    
-    if (imageSwitchTimer) {
-        clearInterval(imageSwitchTimer);
-        imageSwitchTimer = null;
-    }
-    
-    audioPlayer.pause();
-    videoPlayer.pause();
-    
-    playerArea.classList.remove('active');
-    playerArea.style.display = 'none'; 
-    
-    audioPlayer.style.display = 'none';
-    videoPlayer.style.display = 'none';
-    imageViewer.style.display = 'none';
-    
-    currentMedia = {
-        type: null,
-        src: null,
-        path: null,
-        ext: null,
-        wasPlaying: false
-    };
-}
-    
-function toggleFullscreenPlayer() {
-    const videoPlayer = document.getElementById('videoPlayer');
-    const audioPlayer = document.getElementById('audioPlayer');
-    const imageViewer = document.getElementById('imageViewer');
-    
-    let mediaElement;
-    if (videoPlayer.style.display === 'block') {
-        mediaElement = videoPlayer;
-    } else if (audioPlayer.style.display === 'block') {
-        mediaElement = audioPlayer;
-    } else if (imageViewer.style.display === 'block') {
-        mediaElement = imageViewer;
-    }
-    
-    if (!mediaElement) return;
-    
-    if (!document.fullscreenElement) {
-        if (mediaElement.requestFullscreen) {
-            mediaElement.requestFullscreen();
-        } else if (mediaElement.webkitRequestFullscreen) {
-            mediaElement.webkitRequestFullscreen();
-        } else if (mediaElement.msRequestFullscreen) {
-            mediaElement.msRequestFullscreen();
-        }
+        const footerHeight = document.querySelector('.modal-footer').offsetHeight;
+        videoContainer.style.height = `calc(100vh - ${footerHeight}px)`;
+        videoElement.style.height = '100%';
     } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-        }
-    }
-}
-   
-function refreshMedia() {
-    updateRecentList();
-    window.location.reload();
-}
-    
-function toggleFullscreen() {
-    const fullscreenBtn = document.querySelector('.action-btn.primary');
-    const icon = fullscreenBtn ? fullscreenBtn.querySelector('i') : null;
-    
-    if (!document.fullscreenElement) {
-        const elem = document.documentElement;
-        
-        if (icon) {
-            icon.className = 'fas fa-compress';
-            icon.style.opacity = '0.8';
-        }
-        
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen().then(() => {
-                if (icon) {
-                    icon.style.opacity = '1';
-                }
-            }).catch(err => {
-                if (icon) {
-                    icon.className = 'fas fa-expand';
-                    icon.style.opacity = '1';
-                }
-            });
-        } else if (elem.webkitRequestFullscreen) {
-            elem.webkitRequestFullscreen();
-        } else if (elem.msRequestFullscreen) {
-            elem.msRequestFullscreen();
-        }
-    } else {
-        if (icon) {
-            icon.className = 'fas fa-expand';
-            icon.style.opacity = '0.8';
-        }
-        
-        if (document.exitFullscreen) {
-            document.exitFullscreen().then(() => {
-                if (icon) {
-                    icon.style.opacity = '1';
-                }
-            }).catch(err => {
-                if (icon) {
-                    icon.className = 'fas fa-compress';
-                    icon.style.opacity = '1';
-                }
-            });
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-            document.msExitFullscreen();
-        }
+        videoContainer.style.height = isPlaylistVisible ? 'calc(100vh - 180px)' : 'calc(100vh - 120px)';
     }
 }
 
-function showMediaInfo(event, element) {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    selectedMediaElement = element;
-    selectedMediaPath = element.getAttribute('data-src') ? 
-        element.getAttribute('data-src').split('path=')[1] : '';
-    
-    const filename = element.getAttribute('data-filename') || 'Unknown';
-    const filesize = element.getAttribute('data-filesize') || 'Unknown';
-    const type = element.getAttribute('data-type') || 'Unknown';
-    const duration = element.getAttribute('data-duration') || 'N/A';
-    const resolution = element.getAttribute('data-resolution') || 'N/A';
-    const bitrate = element.getAttribute('data-bitrate') || 'N/A';
-    const fileExt = element.getAttribute('data-ext') || 'Unknown';
-    
-    const fullPath = element.getAttribute('data-src') ? 
-        decodeURIComponent(element.getAttribute('data-src').split('path=')[1]) : 'Unknown';
-        document.getElementById('infoFilename').textContent = filename;
-        document.getElementById('infoFilesize').textContent = filesize;
-        document.getElementById('infoType').textContent = `${type} (${fileExt})`;
-        document.getElementById('infoDuration').textContent = duration;
-        document.getElementById('infoResolution').textContent = resolution;
-        document.getElementById('infoBitrate').textContent = bitrate;
-        document.getElementById('infoPath').textContent = fullPath;
-   
-    const durationItem = document.getElementById('durationItem');
-    const resolutionItem = document.getElementById('resolutionItem');
-    const bitrateItem = document.getElementById('bitrateItem');
-    
-    if (type === 'audio') {
-        durationItem.style.display = 'flex';
-        resolutionItem.style.display = 'none';
-        bitrateItem.style.display = 'flex';
-    } else if (type === 'video') {
-        durationItem.style.display = 'flex';
-        resolutionItem.style.display = 'flex';
-        bitrateItem.style.display = 'flex';
-    } else if (type === 'image') {
-        durationItem.style.display = 'none';
-        resolutionItem.style.display = 'flex';
-        bitrateItem.style.display = 'none';
-    }
-    
-    document.getElementById('mediaContextMenu').style.display = 'block';
-    document.getElementById('contextMenuOverlay').style.display = 'block';
-}
+document.addEventListener('fullscreenchange', checkFullscreenState);
 
-function hideContextMenu() {
-    document.getElementById('mediaContextMenu').style.display = 'none';
-    document.getElementById('contextMenuOverlay').style.display = 'none';
-    selectedMediaElement = null;
-    selectedMediaPath = '';
-}
+fullscreenBtn.addEventListener('click', toggleFullscreen);
 
-function playSelectedMedia() {
-    if (selectedMediaPath) {
-        const safePath = decodeURIComponent(selectedMediaPath);
-        playMedia(safePath);
-    } else if (selectedMediaElement) {
-        const clickEvent = new MouseEvent('click', {
-            bubbles: true,
-            cancelable: true,
-            view: window
-        });
-        selectedMediaElement.dispatchEvent(clickEvent);
-    }
-    hideContextMenu();
-}
-
-function closeContextMenu() {
-    hideContextMenu();
-}
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        hideContextMenu();
-    }
+let resizeTimer;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(checkFullscreenState, 100);
 });
 
-document.addEventListener('contextmenu', function(e) {
-    const contextMenu = document.getElementById('mediaContextMenu');
-    if (contextMenu.style.display === 'block') {
-        e.preventDefault();
-    }
-}); 
+updateFullscreenButton(false); 
+</script>
 
-document.addEventListener('click', function() {
-    if (!userInteracted) {
-        userInteracted = true;
-    }
-});
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalElement = document.getElementById('updateConfirmModal');
+    const versionInfo = document.getElementById('themeVersionInfo');
+    const currentVersionInfo = document.getElementById('currentVersionInfo');
+    const downloadLink = document.getElementById('confirmUpdateLink');
 
-function initHoverPlay() {
-    const items = document.querySelectorAll('.hover-playable');
-    
-    items.forEach(item => {
-        item.addEventListener('mouseenter', function() {
-            const type = this.getAttribute('data-type');
-            const src = this.getAttribute('data-src');
-            
-            stopHoverPlay();
-            
-            if (type === 'audio') {
-                hoverAudio = new Audio(src);
-                hoverAudio.volume = 0.9;
-                hoverAudio.play().catch(e => {
-                });
-            } 
-            else if (type === 'video' && userInteracted) {
-                const thumb = this.querySelector('.media-thumb');
-                if (!thumb) return;
-                
-                hoverVideoContainer = document.createElement('div');
-                hoverVideoContainer.className = 'hover-video-container';
-                hoverVideoContainer.style.cssText = `
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    z-index: 10;
-                    border-radius: 8px;
-                    overflow: hidden;
-                    background: #000;
-                `;
-                
-                hoverVideo = document.createElement('video');
-                hoverVideo.src = src;
-                hoverVideo.controls = false;
-                hoverVideo.autoplay = true;
-                hoverVideo.muted = false;
-                hoverVideo.playsInline = true;
-                hoverVideo.style.cssText = `
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                `;
-                
-                hoverVideoContainer.appendChild(hoverVideo);
-                thumb.appendChild(hoverVideoContainer);
-                
-                const icon = thumb.querySelector('i');
-                if (icon) icon.style.opacity = '0.3';
-                
-                hoverVideo.play().catch(e => {
-                    if (hoverVideoContainer && hoverVideoContainer.parentNode) {
-                        hoverVideoContainer.parentNode.removeChild(hoverVideoContainer);
-                    }
-                });
-            }
-        });
-        
-        item.addEventListener('mouseleave', function() {
-            stopHoverPlay();
-        });
-    });
-}
+    modalElement.addEventListener('shown.bs.modal', function () {
+        versionInfo.textContent = translations['fetching_version'] || 'Fetching version info...';
+        currentVersionInfo.textContent = translations['unable_to_fetch_current_version'] || 'Fetching current version...';
+        downloadLink.href = '#';
 
-function stopHoverPlay() {
-    if (hoverAudio) {
-        hoverAudio.pause();
-        hoverAudio.currentTime = 0;
-        hoverAudio = null;
-    }
-    
-    if (hoverVideo) {
-        hoverVideo.pause();
-        hoverVideo.currentTime = 0;
-        
-        if (hoverVideoContainer) {
-            const parent = hoverVideoContainer.parentElement;
-            if (parent) {
-                const icon = parent.querySelector('i');
-                if (icon) icon.style.opacity = '1';
-                
-                if (parent.contains(hoverVideoContainer)) {
-                    parent.removeChild(hoverVideoContainer);
-                }
-            }
-        }
-        
-        hoverVideo = null;
-        hoverVideoContainer = null;
-    }
-}
-
-let cpuChart = null;
-let memChart = null;
-let cpuData = [];
-let memData = [];
-let timeLabels = [];
-let maxDataPoints = 30;
-let networkHistory = [];
-let systemMonitorInterval = null;
-let lastNetworkRx = 0;
-let lastNetworkTx = 0;
-
-async function updateSystemInfo() {
-    try {
-        const response = await fetch('?ajax=1');
-        const data = await response.json();
-        
-        if (data.success) {
-            let cpuUsage = parseFloat(data.cpu_usage) || 0;
-            cpuUsage = Math.max(0, Math.min(100, cpuUsage));
-            
-            updateElementText('cpuUsageDisplay', cpuUsage.toFixed(1) + '%');
-            updateElementText('cpuUsageValue', cpuUsage.toFixed(1) + '%');
-            
-            const cpuBar = document.getElementById('cpuUsageBar');
-            if (cpuBar) {
-                cpuBar.style.width = Math.min(cpuUsage, 100) + '%';
-            }
-            
-            updateElementText('cpuCoresValue', data.cpu_cores || '--');
-            
-            updateElementText('cpuFreqDisplay', data.cpu_freq || '--');
-
-            if (data.openwrt_version) {
-                updateElementText('openwrtVersionDisplay', data.openwrt_version || 'Unknown');
-            }
-            
-            if (data.kernel_version) {
-                updateElementText('kernelVersionDisplay', data.kernel_version || 'Unknown');
-            }
-            
-            if (data.board_model) {
-                updateElementText('boardModelDisplay', data.board_model || 'Unknown');
-            }
-            
-            const memUsage = parseFloat(data.mem_usage) || 0;
-            updateElementText('memUsageDisplay', memUsage.toFixed(1) + '%');
-            updateElementText('memUsageValue', memUsage.toFixed(1) + '%');
-            
-            const memBar = document.getElementById('memUsageBar');
-            if (memBar) memBar.style.width = Math.min(memUsage, 100) + '%';
-            
-            if (data.mem_total !== undefined && data.mem_used !== undefined) {
-                const cleanNumber = (str) => {
-                    if (typeof str === 'string') {
-                        return parseFloat(str.replace(/,/g, ''));
-                    }
-                    return parseFloat(str || 0);
-                };
-    
-                const memUsed = cleanNumber(data.mem_used);
-                const memTotal = cleanNumber(data.mem_total);
-    
-                updateElementText('memUsedDisplay', memUsed.toFixed(1));
-                updateElementText('memTotalDisplay', memTotal.toFixed(1));
-            }    
-     
-            if (cpuChart && memChart) {
-                updateChartData(cpuUsage, memUsage);
-            }
-            
-            if (data.cpu_temp && data.cpu_temp !== '--') {
-                updateElementText('cpuTempDisplay', data.cpu_temp + '°C');
-                const tempElement = document.getElementById('cpuTempDisplay');
-                const temp = parseFloat(data.cpu_temp);
-                
-                if (temp > 70) {
-                    tempElement.style.color = '#F44336';
-                } else if (temp > 60) {
-                    tempElement.style.color = '#FF9800';
+        fetch('check_theme_update.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.currentVersion) {
+                    currentVersionInfo.textContent = `${translations['current_version'] || 'Current Version'}: ${data.currentVersion}`;
                 } else {
-                    tempElement.style.color = '#4CAF50';
+                    currentVersionInfo.textContent = translations['unable_to_fetch_current_version'] || 'Unable to fetch the current version info';
                 }
-            }
-            
-            updateElementText('processCountDisplay', data.process_count || '--');
-            
-            const uptimeElement = document.getElementById('uptimeDisplay');
-            if (uptimeElement && data.uptime) {
-                let uptimeText = data.uptime;
-    
-                uptimeText = uptimeText.replace(/days/gi, translations['uptime_days'] || 'days')
-                                                  .replace(/hours/gi, translations['uptime_hours'] || 'hours')
-                                                  .replace(/minutes/gi, translations['minutes'] || 'minutes')
-                                                  .replace(/seconds/gi, translations['seconds'] || 'seconds');
-                uptimeElement.textContent = uptimeText;
-            }
-            
-            updateElementText('loadAvgDisplay', data.load_avg || '--');
-            
-            updateElementText('timeValue', data.system_time || '--:--:--');
-            updateElementText('timezoneDisplay', data.timezone || 'UTC');
-            
-            if (data.network_rx !== undefined && data.network_tx !== undefined) {
-                updateNetworkSpeed(data.network_rx, data.network_tx);
-            }
-        }
-    } catch (error) {
-        console.error('Failed to update system info:', error);
-        showErrorState();
-    }
-}
 
-function updateElementText(elementId, text) {
-    const element = document.getElementById(elementId);
-    if (element) element.textContent = text;
-}
-
-function showErrorState() {
-    updateElementText('cpuUsageDisplay', '--%');
-    updateElementText('memUsageDisplay', '--%');
-    updateElementText('cpuTempDisplay', '--°C');
-    updateElementText('processCountDisplay', '--');
-    updateElementText('uptimeDisplay', '--:--:--');
-    updateElementText('loadAvgDisplay', '--');
-    updateElementText('timeValue', '--:--:--');
-    updateElementText('timezoneDisplay', '--');
-}
-
-function initCharts() {
-    const cpuCtx = document.getElementById('cpuChartCanvas');
-    const memCtx = document.getElementById('memChartCanvas');
-    
-    if (!cpuCtx || !memCtx) {
-        console.log('Chart canvas not found');
-        return;
-    }
-
-    if (cpuChart) {
-        cpuChart.destroy();
-    }
-
-    if (memChart) {
-        memChart.destroy();
-    }
-    
-    const cpuContext = cpuCtx.getContext('2d');
-    const memContext = memCtx.getContext('2d');
-    cpuContext.clearRect(0, 0, cpuCtx.width, cpuCtx.height);
-    memContext.clearRect(0, 0, memCtx.width, memCtx.height);
-    
-    cpuCtx.width = cpuCtx.offsetWidth;
-    cpuCtx.height = cpuCtx.offsetHeight;
-    memCtx.width = memCtx.offsetWidth;
-    memCtx.height = memCtx.offsetHeight;
-    
-    cpuData = [];
-    memData = [];
-    timeLabels = [];
-    
-    for (let i = 0; i < maxDataPoints; i++) {
-        cpuData.push(0);
-        memData.push(0);
-        timeLabels.push('');
-    }
-    
-    try {
-        cpuChart = new Chart(cpuCtx.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: timeLabels,
-                datasets: [{
-                    label: 'CPU Usage',
-                    data: cpuData,
-                    borderColor: '#4CAF50',
-                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => `CPU: ${ctx.parsed.y.toFixed(1)}%`
-                        }
-                    }
-                },
-                scales: {
-                    x: { display: false },
-                    y: {
-                        min: 0,
-                        max: 100,
-                        ticks: {
-                            color: '#888',
-                            callback: (value) => `${value}%`
-                        },
-                        grid: { color: 'rgba(255,255,255,0.1)' }
-                    }
-                }
-            }
-        });
-        
-        memChart = new Chart(memCtx.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: timeLabels,
-                datasets: [{
-                    label: 'Memory Usage',
-                    data: memData,
-                    borderColor: '#2196F3',
-                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => `Memory: ${ctx.parsed.y.toFixed(1)}%`
-                        }
-                    }
-                },
-                scales: {
-                    x: { display: false },
-                    y: {
-                        min: 0,
-                        max: 100,
-                        ticks: {
-                            color: '#888',
-                            callback: (value) => `${value}%`
-                        },
-                        grid: { color: 'rgba(255,255,255,0.1)' }
-                    }
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Error initializing charts:', error);
-    }
-}
-
-function updateChartData(cpuValue, memValue) {
-    if (!cpuChart || !memChart) return;
-    
-    cpuData.push(cpuValue);
-    memData.push(memValue);
-    
-    if (cpuData.length > maxDataPoints) {
-        cpuData.shift();
-        memData.shift();
-    }
-    
-    cpuChart.data.datasets[0].data = cpuData;
-    memChart.data.datasets[0].data = memData;
-    
-    cpuChart.update('none');
-    memChart.update('none');
-}
-
-function updateNetworkSpeed(rx, tx) {
-    const networkElement = document.getElementById('networkSpeedDisplay');
-    if (!networkElement) return;
-    
-    const currentTime = Date.now();
-    
-    if (typeof updateNetworkSpeed.lastTime === 'undefined') {
-        updateNetworkSpeed.lastTime = currentTime;
-        updateNetworkSpeed.lastRx = rx;
-        updateNetworkSpeed.lastTx = tx;
-        return;
-    }
-    
-    const timeDiff = (currentTime - updateNetworkSpeed.lastTime) / 1000;
-    
-    if (timeDiff > 0) {
-        const rxSpeed = (rx - updateNetworkSpeed.lastRx) / timeDiff;
-        const txSpeed = (tx - updateNetworkSpeed.lastTx) / timeDiff;
-        const totalSpeed = rxSpeed + txSpeed;
-        
-        let displayText, color;
-        
-        if (totalSpeed < 1024) {
-            displayText = totalSpeed.toFixed(1) + ' B/s';
-            color = '#4CAF50';
-        } else if (totalSpeed < 1024 * 1024) {
-            displayText = (totalSpeed / 1024).toFixed(1) + ' KB/s';
-            color = '#2196F3';
-        } else {
-            displayText = (totalSpeed / (1024 * 1024)).toFixed(1) + ' MB/s';
-            color = '#E91E63';
-        }
-        
-        networkElement.innerHTML = `${displayText}<br>
-                                   <span style="font-size: 0.8rem; color: #888;">
-                                   ↓${(rxSpeed < 1024 ? rxSpeed.toFixed(1) + ' B' : 
-                                       rxSpeed < 1024 * 1024 ? (rxSpeed / 1024).toFixed(1) + ' KB' : 
-                                       (rxSpeed / (1024 * 1024)).toFixed(1) + ' MB')}/s ↑
-                                   ${(txSpeed < 1024 ? txSpeed.toFixed(1) + ' B' : 
-                                       txSpeed < 1024 * 1024 ? (txSpeed / 1024).toFixed(1) + ' KB' : 
-                                       (txSpeed / (1024 * 1024)).toFixed(1) + ' MB')}/s</span>`;
-        networkElement.style.color = color;
-        
-        updateNetworkSpeed.lastTime = currentTime;
-        updateNetworkSpeed.lastRx = rx;
-        updateNetworkSpeed.lastTx = tx;
-    }
-}
-updateNetworkSpeed.lastTime = undefined;
-updateNetworkSpeed.lastRx = 0;
-updateNetworkSpeed.lastTx = 0;
-
-function startSystemMonitoring() {
-    stopSystemMonitoring();
-    
-    if (cpuChart) {
-        cpuChart.destroy();
-        cpuChart = null;
-    }
-    if (memChart) {
-        memChart.destroy();
-        memChart = null;
-    }
-    
-    if (document.getElementById('cpuChartCanvas') && typeof Chart !== 'undefined') {
-        initCharts();
-    } else if (typeof Chart === 'undefined') {
-        const script = document.createElement('script');
-        script.src = '/luci-static/spectra/js/chart.js';
-        script.onload = initCharts;
-        document.head.appendChild(script);
-    }
-    
-    updateSystemInfo();
-    
-    systemMonitorInterval = setInterval(updateSystemInfo, 1000);
-}
-
-function stopSystemMonitoring() {
-    if (systemMonitorInterval) {
-        clearInterval(systemMonitorInterval);
-        systemMonitorInterval = null;
-    }
-}
-
-let isResizing = false;
-let isPlayerResizing = false;
-let startX, startWidth, startPlayerWidth;
-
-function initResizer() {
-    const resizer = document.getElementById('resizer');
-    const playerResizer = document.getElementById('playerResizer');
-    const contentArea = document.getElementById('contentArea');
-    const playerArea = document.getElementById('playerArea');
-    const sideNav = document.getElementById('sideNav');
-    
-    if (resizer) {
-        resizer.addEventListener('mousedown', function(e) {
-            e.preventDefault();
-            isResizing = true;
-            startX = e.clientX;
-            startWidth = sideNav.offsetWidth;
-            resizer.classList.add('dragging');
-            
-            document.addEventListener('mousemove', handleSidebarResize);
-            document.addEventListener('mouseup', stopResize);
-        });
-        
-        resizer.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            isResizing = true;
-            startX = e.touches[0].clientX;
-            startWidth = sideNav.offsetWidth;
-            resizer.classList.add('dragging');
-            
-            document.addEventListener('touchmove', handleSidebarResizeTouch);
-            document.addEventListener('touchend', stopResizeTouch);
-        });
-    }
-    
-    if (playerResizer) {
-        playerResizer.addEventListener('mousedown', function(e) {
-            e.preventDefault();
-            if (!playerArea.classList.contains('active')) return;
-            
-            isPlayerResizing = true;
-            startX = e.clientX;
-            startPlayerWidth = playerArea.offsetWidth;
-            playerResizer.classList.add('dragging');
-            
-            document.addEventListener('mousemove', handlePlayerResize);
-            document.addEventListener('mouseup', stopPlayerResize);
-        });
-        
-        playerResizer.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            if (!playerArea.classList.contains('active')) return;
-            
-            isPlayerResizing = true;
-            startX = e.touches[0].clientX;
-            startPlayerWidth = playerArea.offsetWidth;
-            playerResizer.classList.add('dragging');
-            
-            document.addEventListener('touchmove', handlePlayerResizeTouch);
-            document.addEventListener('touchend', stopPlayerResizeTouch);
-        });
-    }
-}
-
-function handleSidebarResize(e) {
-    if (!isResizing) return;
-    
-    const sideNav = document.getElementById('sideNav');
-    const toggleIcon = document.querySelector('.fa-server');
-    const deltaX = e.clientX - startX;
-    let newWidth = startWidth + deltaX;
-    
-    newWidth = Math.max(70, Math.min(400, newWidth));
-    
-    if (sidebarCollapsed && newWidth > 70) {
-        if (toggleIcon) {
-            toggleIcon.style.transform = 'rotate(0deg)';
-            toggleIcon.setAttribute('data-translate-tooltip', 'toggle_menu');
-        }
-        sidebarCollapsed = false;
-        sideNav.classList.remove('collapsed');
-    }
-    
-    if (!sidebarCollapsed) {
-        sideNav.style.width = newWidth + 'px';
-        sideNav.style.transition = 'none';
-    }
-}
-
-function handleSidebarResizeTouch(e) {
-    if (!isResizing || !e.touches.length) return;
-    
-    const sideNav = document.getElementById('sideNav');
-    const toggleIcon = document.querySelector('.fa-server');
-    const deltaX = e.touches[0].clientX - startX;
-    let newWidth = startWidth + deltaX;
-    
-    newWidth = Math.max(70, Math.min(400, newWidth));
-    
-    if (sidebarCollapsed && newWidth > 70) {
-        if (toggleIcon) {
-            toggleIcon.style.transform = 'rotate(0deg)';
-            toggleIcon.setAttribute('data-translate-tooltip', 'toggle_menu');
-        }
-        sidebarCollapsed = false;
-        sideNav.classList.remove('collapsed');
-    }
-    
-    if (!sidebarCollapsed) {
-        sideNav.style.width = newWidth + 'px';
-        sideNav.style.transition = 'none';
-    }
-}
-
-function handlePlayerResize(e) {
-    if (!isPlayerResizing) return;
-    
-    const playerArea = document.getElementById('playerArea');
-    const deltaX = startX - e.clientX;
-    let newWidth = startPlayerWidth + deltaX;
-    
-    newWidth = Math.max(300, Math.min(window.innerWidth * 0.8, newWidth));
-    
-    playerArea.style.width = newWidth + 'px';
-    playerArea.style.transition = 'none';
-    playerArea.style.flex = 'none';
-}
-
-function handlePlayerResizeTouch(e) {
-    if (!isPlayerResizing || !e.touches.length) return;
-    
-    const playerArea = document.getElementById('playerArea');
-    const deltaX = startX - e.touches[0].clientX;
-    let newWidth = startPlayerWidth + deltaX;
-    
-    newWidth = Math.max(300, Math.min(window.innerWidth * 0.8, newWidth));
-    
-    playerArea.style.width = newWidth + 'px';
-    playerArea.style.transition = 'none';
-    playerArea.style.flex = 'none';
-}
-
-function stopResize() {
-    isResizing = false;
-    const resizer = document.getElementById('resizer');
-    if (resizer) {
-        resizer.classList.remove('dragging');
-    }
-    document.removeEventListener('mousemove', handleSidebarResize);
-    document.removeEventListener('mouseup', stopResize);
-    
-    const sideNav = document.getElementById('sideNav');
-    if (sideNav && !sidebarCollapsed) {
-        localStorage.setItem('sidebarWidth', sideNav.offsetWidth);
-        sideNav.style.transition = 'width 0.3s ease';
-    }
-}
-
-function stopResizeTouch() {
-    isResizing = false;
-    const resizer = document.getElementById('resizer');
-    if (resizer) {
-        resizer.classList.remove('dragging');
-    }
-    document.removeEventListener('touchmove', handleSidebarResizeTouch);
-    document.removeEventListener('touchend', stopResizeTouch);
-    
-    const sideNav = document.getElementById('sideNav');
-    if (sideNav && !sidebarCollapsed) {
-        localStorage.setItem('sidebarWidth', sideNav.offsetWidth);
-        sideNav.style.transition = 'width 0.3s ease';
-    }
-}
-
-function stopPlayerResize() {
-    isPlayerResizing = false;
-    const playerResizer = document.getElementById('playerResizer');
-    if (playerResizer) {
-        playerResizer.classList.remove('dragging');
-    }
-    document.removeEventListener('mousemove', handlePlayerResize);
-    document.removeEventListener('mouseup', stopPlayerResize);
-    
-    const playerArea = document.getElementById('playerArea');
-    if (playerArea) {
-        localStorage.setItem('playerWidth', playerArea.offsetWidth);
-        playerArea.style.transition = 'width 0.3s ease';
-    }
-}
-
-function stopPlayerResizeTouch() {
-    isPlayerResizing = false;
-    const playerResizer = document.getElementById('playerResizer');
-    if (playerResizer) {
-        playerResizer.classList.remove('dragging');
-    }
-    document.removeEventListener('touchmove', handlePlayerResizeTouch);
-    document.removeEventListener('touchend', stopPlayerResizeTouch);
-    
-    const playerArea = document.getElementById('playerArea');
-    if (playerArea) {
-        localStorage.setItem('playerWidth', playerArea.offsetWidth);
-        playerArea.style.transition = 'width 0.3s ease';
-    }
-}
-
-function updateCollapseButton(collapsed) {
-    const toggleBtn = document.getElementById('collapseToggle');
-    if (!toggleBtn) return;
-    
-    if (collapsed) {
-        toggleBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
-        toggleBtn.style.left = '-12px';
-        toggleBtn.setAttribute('data-translate-tooltip', 'expand_menu'); 
-    } else {
-        toggleBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
-        toggleBtn.style.left = '-12px';
-        toggleBtn.setAttribute('data-translate-tooltip', 'toggle_menu');
-    }
-}
-
-function loadSavedWidths() {
-    const savedPlayerWidth = localStorage.getItem('playerWidth');
-    const playerArea = document.getElementById('playerArea');
-    if (savedPlayerWidth && playerArea) {
-        playerArea.style.width = savedPlayerWidth + 'px';
-        playerArea.style.flex = 'none';
-    }
-}
-
-let sidebarCollapsed = false;
-
-function toggleSidebar() {
-    const sideNav = document.getElementById('sideNav');
-    const toggleIcon = document.querySelector('.fa-server');
-    
-    sidebarCollapsed = !sidebarCollapsed;
-    
-    if (sidebarCollapsed) {
-        sideNav.style.width = '70px';
-        sideNav.classList.add('collapsed');
-        if (toggleIcon) {
-            toggleIcon.style.transform = 'rotate(90deg)';
-            toggleIcon.setAttribute('data-translate-tooltip', 'expand_menu');
-        }
-    } else {
-        const savedWidth = localStorage.getItem('sidebarWidth');
-        if (savedWidth && parseInt(savedWidth) > 70) {
-            sideNav.style.width = savedWidth + 'px';
-        } else {
-            sideNav.style.width = '240px';
-        }
-        sideNav.classList.remove('collapsed');
-        if (toggleIcon) {
-            toggleIcon.style.transform = 'rotate(0deg)';
-            toggleIcon.setAttribute('data-translate-tooltip', 'toggle_menu');
-        }
-    }
-    
-    localStorage.setItem('sidebarCollapsed', sidebarCollapsed ? 'true' : 'false');
-}
-
-function initSidebarState() {
-    const savedState = localStorage.getItem('sidebarCollapsed');
-    const toggleIcon = document.querySelector('.fa-server');
-    const sideNav = document.getElementById('sideNav');
-    
-    if (savedState === 'true') {
-        if (sideNav && toggleIcon) {
-            sideNav.classList.add('collapsed');
-            sideNav.style.width = '70px';
-            toggleIcon.style.transform = 'rotate(90deg)';
-            toggleIcon.setAttribute('data-translate-tooltip', 'expand_menu');
-            sidebarCollapsed = true;
-        }
-    } else {
-        const savedWidth = localStorage.getItem('sidebarWidth');
-        if (sideNav) {
-            if (savedWidth) {
-                sideNav.style.width = savedWidth + 'px';
-            } else {
-                sideNav.style.width = '240px';
-            }
-            sideNav.classList.remove('collapsed');
-            if (toggleIcon) {
-                toggleIcon.style.transform = 'rotate(0deg)';
-                toggleIcon.setAttribute('data-translate-tooltip', 'toggle_menu');
-            }
-            sidebarCollapsed = false;
-        }
-    }
-}
-
-function updateFullscreenIcon() {
-    const fullscreenBtn = document.querySelector('.action-btn.primary');
-    if (!fullscreenBtn) return;
-    
-    const icon = fullscreenBtn.querySelector('i');
-    const textSpan = fullscreenBtn.querySelector('span');
-    
-    if (icon && textSpan) {
-        if (document.fullscreenElement) {
-            icon.className = 'fas fa-compress';
-            textSpan.textContent = textSpan.getAttribute('data-translate') === 'fullscreen_play' ? 
-                (translations['exit_fullscreen'] || 'Exit Fullscreen') : 'Exit Fullscreen';
-        } else {
-            icon.className = 'fas fa-expand';
-            textSpan.textContent = textSpan.getAttribute('data-translate') === 'fullscreen_play' ? 
-                (translations['fullscreen_play'] || 'Fullscreen Play') : 'Fullscreen Play';
-        }
-    }
-}
-   
-document.addEventListener('DOMContentLoaded', function() {
-    updateRecentList();
-    initHoverPlay();
-    initSidebarState();
-    initResizer();
-    loadSavedWidths();
-    startSystemMonitoring();
-    initAutoPlayToggle();
-    
-    if (typeof Chart !== 'undefined') {
-        startSystemMonitoring();
-    } else {
-        const script = document.createElement('script');
-        script.src = '/luci-static/spectra/js/chart.js';
-        script.onload = function() {
-            startSystemMonitoring();
-        };
-        document.head.appendChild(script);
-    }
-
-    document.addEventListener('fullscreenchange', updateFullscreenIcon);
-    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
-    document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
-    document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
-    
-    updateFullscreenIcon();
-
-    const playerArea = document.getElementById('playerArea');
-    const playerResizer = document.getElementById('playerResizer');
-    
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.attributeName === 'class') {
-                if (playerArea.classList.contains('active')) {
-                    playerResizer.style.display = 'block';
+                if (data.version && data.url) {
+                    versionInfo.textContent = `${translations['latest_version'] || 'Latest Version'}: ${data.version}`;
+                    downloadLink.href = data.url;
                 } else {
-                    playerResizer.style.display = 'none';
+                    versionInfo.textContent = translations['unable_to_fetch_version'] || 'Unable to fetch the latest version info';
                 }
-            }
-        });
-    });
-    
-    if (playerArea) {
-        observer.observe(playerArea, { attributes: true });
-    }
-
-    document.addEventListener('click', function(e) {
-        const contextMenu = document.getElementById('mediaContextMenu');
-        const overlay = document.getElementById('contextMenuOverlay');
-        if (contextMenu.style.display === 'block' && 
-            !contextMenu.contains(e.target) && 
-            !overlay.contains(e.target)) {
-            hideContextMenu();
-        }
-    });
-    
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            if (document.getElementById('fullscreenPlayer').classList.contains('active')) {
-                closeFullscreenPlayer();
-            } else {
-                closePlayer();
-            }
-        }
-        if (e.key === ' ' && !e.target.matches('input, textarea, select, button')) {
-            e.preventDefault();
-            const audioPlayer = document.getElementById('audioPlayer');
-            const videoPlayer = document.getElementById('videoPlayer');
-            const fullscreenAudio = document.getElementById('fullscreenAudio');
-            const fullscreenVideo = document.getElementById('fullscreenVideo');
-            
-            if (fullscreenAudio.style.display === 'block') {
-                if (fullscreenAudio.paused) fullscreenAudio.play();
-                else fullscreenAudio.pause();
-            } else if (fullscreenVideo.style.display === 'block') {
-                if (fullscreenVideo.paused) fullscreenVideo.play();
-                else fullscreenVideo.pause();
-            } else if (audioPlayer.style.display === 'block') {
-                if (audioPlayer.paused) audioPlayer.play();
-                else audioPlayer.pause();
-            } else if (videoPlayer.style.display === 'block') {
-                if (videoPlayer.paused) videoPlayer.play();
-                else videoPlayer.pause();
-            }
-        }
-        if (e.key === 'f' || e.key === 'F') {
-            e.preventDefault();
-            toggleFullscreen();
-        }
-        if (e.key === 'ArrowRight') {
-            e.preventDefault();
-            playNextMedia();
-        }
-        if (e.key === 'ArrowLeft') {
-            e.preventDefault();
-            playPreviousMedia();
-        }
-        if (e.key === 'a' || e.key === 'A') {
-            e.preventDefault();
-            toggleAutoNext();
-        }
+            })
+            .catch(() => {
+                versionInfo.textContent = translations['request_failed'] || 'Request failed, please try again later';
+            });
     });
 });
 </script>
 
+<script>
+let mediaFiles = [];
+let currentPreviewIndex = -1;
+let mediaTimer = null;
+
+const fitModes = [
+  { mode: 'cover',      labelKey: 'fit_cover' },
+  { mode: 'contain',    labelKey: 'fit_contain' },
+  { mode: 'fill',       labelKey: 'fit_fill' },
+  { mode: 'none',       labelKey: 'fit_none' },
+  { mode: 'scale-down', labelKey: 'fit_scale-down' },
+];
+let currentFitIndex = 0;
+
+const fitButtons = ['fitTogglePreview', 'fitTogglePlayer'];
+
+function applyFitMode(announce = true) {
+  const currentMode = fitModes[currentFitIndex];
+  const label = translations?.[currentMode.labelKey] || currentMode.mode;
+
+  ['previewImage', 'previewVideo', 'mainPlayer'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.objectFit = currentMode.mode;
+  });
+
+  fitButtons.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      const span = btn.querySelector('span[data-translate]');
+      if (span) {
+        span.textContent = label;
+      } else {
+        btn.textContent = label;
+      }
+    }
+  });
+
+  if (!announce) return;
+
+  const prefix = translations?.['current_fit_mode'] || 'Current mode';
+  const messageText = `${prefix}: ${label}`;
+  if (typeof showLogMessage === 'function') showLogMessage(messageText);
+  if (typeof speakMessage === 'function') speakMessage(messageText);
+}
+
+fitButtons.forEach(btnId => {
+  const btn = document.getElementById(btnId);
+  if (btn) {
+    btn.addEventListener('click', () => {
+      currentFitIndex = (currentFitIndex + 1) % fitModes.length;
+      applyFitMode(true);
+    });
+  }
+});
+
+function initMediaFiles() {
+  mediaFiles = [];
+  document.querySelectorAll('[data-bs-target="#previewModal"]').forEach((el, index) => {
+    if (el.dataset.src) {
+      mediaFiles.push({
+        src: el.dataset.src,
+        type: el.dataset.type || 'image',
+        element: el
+      });
+      el.dataset.fileIndex = index;
+    }
+  });
+}
+
+function cleanMediaElements() {
+  if (mediaTimer) {
+    clearTimeout(mediaTimer);
+    mediaTimer = null;
+  }
+  ['Image','Audio','Video'].forEach(kind => {
+    const el = document.getElementById('preview' + kind);
+    if (el) {
+      el.classList.add('d-none');
+      if (kind !== 'Video' && kind !== 'Image') {
+        el.src = '';
+      }
+      if (kind === 'Video' || kind === 'Audio') {
+        el.pause();
+        el.onended = null;
+        if (kind === 'Video') {
+          el.querySelector('source').src = '';
+        }
+      }
+    }
+  });
+}
+
+function loadAndPlayMedia() {
+  cleanMediaElements();
+  applyFitMode(false); 
+
+  const currentFile = mediaFiles[currentPreviewIndex];
+  if (!currentFile) return;
+
+  switch (currentFile.type) {
+    case 'image': {
+      const img = document.getElementById('previewImage');
+      img.src = currentFile.src;
+      img.classList.remove('d-none');
+      mediaTimer = setTimeout(() => {
+        document.getElementById('nextBtn').click();
+      }, 5000);
+      break;
+    }
+    case 'video': {
+      const video = document.getElementById('previewVideo');
+      const source = video.querySelector('source');
+      source.src = currentFile.src;
+      video.load();
+      video.classList.remove('d-none');
+      video.onended = () => {
+        document.getElementById('nextBtn').click();
+      };
+      video.play().catch(e => console.log('Video play failed:', e));
+      break;
+    }
+    case 'audio': {
+      const audio = document.getElementById('previewAudio');
+      audio.src = currentFile.src;
+      audio.classList.remove('d-none');
+      audio.onended = () => {
+        document.getElementById('nextBtn').click();
+      };
+      audio.play().catch(e => console.log('Audio play failed:', e));
+      break;
+    }
+  }
+}
+
+document.getElementById('previewModal').addEventListener('show.bs.modal', function(e) {
+  initMediaFiles();
+  currentPreviewIndex = parseInt(e.relatedTarget.dataset.fileIndex);
+  currentFitIndex = 0;
+  loadAndPlayMedia();
+});
+
+document.getElementById('playerModal').addEventListener('show.bs.modal', function () {
+  currentFitIndex = 0;
+  applyFitMode(false);
+});
+
+document.getElementById('prevBtn').addEventListener('click', () => {
+  currentPreviewIndex = (currentPreviewIndex - 1 + mediaFiles.length) % mediaFiles.length;
+  loadAndPlayMedia();
+});
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  currentPreviewIndex = (currentPreviewIndex + 1) % mediaFiles.length;
+  loadAndPlayMedia();
+});
+
+document.addEventListener('keydown', (e) => {
+  const modal = document.getElementById('previewModal');
+  if (!modal.classList.contains('show')) return;
+
+  const key = e.key.toLowerCase();
+  if (key === 'a') {
+    document.getElementById('prevBtn').click();
+  } else if (key === 'd') {
+    document.getElementById('nextBtn').click();
+  }
+});
+</script>
+
+<script>
+function setBackground(filename) {
+    fetch('set_background.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'file=' + encodeURIComponent(filename)
+    }).then(() => location.reload()) 
+      .catch(error => console.error('Request failed:', error));
+}
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const logMessages = document.querySelectorAll('#log-message');
+
+    logMessages.forEach(message => {
+        setTimeout(() => {
+            message.style.transition = "opacity 0.5s ease-out";  
+            message.style.opacity = '0';  
+            setTimeout(() => {
+                message.remove();  
+            }, 500); 
+        }, 4000); 
+    });
+});
+</script>
+
+<script>
+document.addEventListener('change', function(e) {
+    if(e.target.classList.contains('fileCheckbox')) {
+        const wrapper = e.target.closest('.file-checkbox-wrapper');
+        wrapper.classList.toggle('force-visible', e.target.checked);
+        
+        const allCheckboxes = [...document.querySelectorAll('.fileCheckbox:not(#selectAll)')];
+        const allChecked = allCheckboxes.every(c => c.checked);
+        document.getElementById('selectAll').checked = allChecked;
+    }
+});
+
+document.getElementById('selectAll').addEventListener('change', function(e) {
+    const checkboxes = document.querySelectorAll('.fileCheckbox:not(#selectAll)');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = e.target.checked;
+        const wrapper = checkbox.closest('.file-checkbox-wrapper');
+        wrapper.classList.toggle('force-visible', e.target.checked);
+    });
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const grid = document.getElementById("fileGrid");
+
+    const isSmallScreen = window.innerWidth < 768;
+
+    if (!isSmallScreen) {
+        new Sortable(grid, {
+            animation: 150,
+            onEnd: function () {
+                const filenames = Array.from(grid.querySelectorAll('[data-filename]'))
+                                      .map(el => el.getAttribute('data-filename'));
+                
+                fetch('order_handler.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ order: filenames })
+                })
+                .then(response => response.ok ? console.log('Order saved.') : console.error('Failed to save.'))
+                .catch(console.error);
+            }
+        });
+    } else {
+        //console.log('Drag and drop is disabled on small screens.');
+    }
+});
+</script>
+
+<script>
+function clearBackgroundDirectly() {
+    clearExistingBackground();
+    localStorage.removeItem('phpBackgroundSrc');
+    localStorage.removeItem('phpBackgroundType');
+    localStorage.removeItem('backgroundSet');
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const copyButton = document.getElementById('copyCommandBtn');
+    const copyCommandTextarea = document.getElementById('copyCommand');
+
+    copyButton.addEventListener('click', function () {
+        copyCommandTextarea.select();
+        document.execCommand('copy'); 
+        const message = translations['command_copied'] || 'Command copied to clipboard!';
+        showLogMessage(message);
+        speakMessage(message);
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const updatePluginBtn = document.getElementById('updatePluginBtn');
+    const updateConfirmModal = new bootstrap.Modal(document.getElementById('updateConfirmModal'));
+    const updateModal = new bootstrap.Modal(document.getElementById('updateModal'));
+    const logOutput = document.getElementById('logOutput');
+
+    updatePluginBtn.addEventListener('click', function () {
+        updateConfirmModal.hide();
+        updateModal.show();
+
+        fetch('install_theme.php', {
+            method: 'POST',
+        })
+        .then(response => response.text())
+        .then(data => {
+            if (data.includes("Installation complete!")) {
+                logOutput.textContent = "Installation complete!";
+                setTimeout(() => {
+                    updateModal.hide();
+                    window.top.location.href = "/cgi-bin/luci/admin/spectra/media";
+                }, 3000);
+            } else {
+                logOutput.textContent = data;
+                setTimeout(() => {
+                    updateModal.hide();
+                }, 5000);
+            }
+        })
+        .catch(error => {
+            const message = translations['installation_complete'] || 'Installation complete!';
+            logOutput.textContent = '';
+            logOutput.textContent = message;
+            showLogMessage(message);
+            speakMessage(message);
+
+            setTimeout(() => {
+                updateModal.hide();
+            }, 5000);
+        });
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  let currentFilename = '';
+  const shareModal = document.getElementById('shareModal');
+  const shareLinkInput = document.getElementById('shareLink');
+  const copyLinkBtn = document.getElementById('copyLinkBtn');
+  const generateShareBtn = document.getElementById('generateShareBtn');
+
+  shareModal.addEventListener('show.bs.modal', (event) => {
+    currentFilename = event.relatedTarget.dataset.filename;
+  });
+
+  generateShareBtn.addEventListener('click', async () => {
+    const expire = parseInt(document.getElementById('expireTime').value, 10) || 0;
+    const maxDownloads = parseInt(document.getElementById('maxDownloads').value, 10) || 0;
+
+    try {
+       if (!currentFilename) throw new Error(translations['fileNotSelected'] || 'No file selected');
+      
+      const response = await fetch('./share.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          filename: currentFilename,
+          expire: expire,
+          max_downloads: maxDownloads,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || `${translations['httpError']} ${response.status}`);
+      }
+
+      const link = `${window.location.origin}/spectra/download.php?token=${data.token}`;
+      shareLinkInput.value = link;
+      const message = translations['linkGenerated'] || '✅ Share link generated';
+      showLogMessage(message);
+      speakMessage(message);
+    } catch (error) {
+      console.error('Error:', error);
+      showLogMessage(`${translations['operationFailed'] || '❌ Operation failed'}: ${error.message}`);
+    }
+  });
+
+  copyLinkBtn.addEventListener('click', async () => {
+    try {
+      if (!shareLinkInput.value) throw new Error(translations['generateLinkFirst'] || 'Please generate the share link first');
+      
+      await navigator.clipboard.writeText(shareLinkInput.value);
+      showLogMessage(translations['linkCopied'] || '📋 Link copied to clipboard');
+    } catch (error) {
+      console.error('Copy failed:', error);
+      showLogMessage(`${translations['copyFailed'] || '❌ Copy failed'}: ${error.message}`);
+      shareLinkInput.select();
+      shareLinkInput.setSelectionRange(0, 99999);
+    }
+  });
+});
+
+const cleanExpiredBtn = document.getElementById('cleanExpiredBtn');
+cleanExpiredBtn.addEventListener('click', async () => {
+  try {
+    const res = await fetch('./manage_tokens.php?action=clean');
+    const result = await res.json();
+
+    if (result.success) {
+      const msg = (translations['cleanSuccess'] || '✅ Clean completed').replace('%s', result.deleted);
+      showLogMessage(msg);
+      speakMessage(msg);
+    } else {
+      throw new Error(result.message || 'Operation failed');
+    }
+  } catch (err) {
+    showLogMessage(`${translations['operationFailed'] || '❌ Operation failed'}: ${err.message}`);
+  }
+});
+
+const deleteAllBtn = document.getElementById('deleteAllBtn');
+if (deleteAllBtn) {
+  deleteAllBtn.addEventListener('click', () => {
+    const confirmMessage = translations['confirmDeleteAll'] || '⚠️ Are you sure you want to delete ALL share records?';
+    showConfirmation(confirmMessage, async () => {
+      try {
+        const res = await fetch('./manage_tokens.php?action=delete_all');
+        const result = await res.json();
+
+        if (result.success) {
+          const msg = (translations['deleteSuccess'] || '✅ All share records deleted').replace('%s', result.deleted);
+          showLogMessage(msg);
+          speakMessage(msg);
+        } else {
+          throw new Error(result.message || 'Operation failed');
+        }
+      } catch (err) {
+        showLogMessage(`${translations['operationFailed'] || '❌ Operation failed'}: ${err.message}`);
+      }
+    });
+  });
+}
+</script>
+
+<script>
+async function translateText(text, targetLang = null) {
+  if (!text?.trim()) return text;
+  const countryToLang = {
+    'CN':'zh-CN','HK':'zh-HK','TW':'zh-TW','JA':'ja',
+    'KO':'ko','VI':'vi','TH':'th','GB':'en','FR':'fr',
+    'DE':'de','RU':'ru','US':'en','MX':'es'
+  };
+  if (!targetLang) targetLang = localStorage.getItem('language') || 'CN';
+  targetLang = countryToLang[targetLang.toUpperCase()] || targetLang;
+  const apiLangMap = {
+    'zh-CN':'zh-CN','zh-HK':'zh-HK','zh-TW':'zh-TW',
+    'ja':'ja','ko':'ko','vi':'vi','en':'en-GB','ru':'ru'
+  };
+  const apiTargetLang = apiLangMap[targetLang] || targetLang;
+  const detectJP = t => /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(t);
+  const sourceLang = detectJP(text) ? 'ja' : 'en';
+  if (sourceLang.split('-')[0] === apiTargetLang.split('-')[0]) return text;
+  const cacheKey = `trans_${sourceLang}_${apiTargetLang}_${text}`;
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) return cached;
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${apiTargetLang}`;
+  try {
+    const res  = await fetch(url);
+    const data = await res.json();
+    const translated = data.responseData?.translatedText || text;
+    localStorage.setItem(cacheKey, translated);
+    return translated;
+  } catch {
+    return text;
+  }
+}
+
+let IP = {
+  ipApis: [
+    {url:'https://api.ipify.org?format=json', type:'json', key:'ip'},
+    {url:'https://ipapi.co/json/',           type:'json', key:'ip'}
+  ],
+  get(url,type) { return fetch(url,{cache:'no-store'}).then(r=> type==='text'?r.text():r.json()); },
+  async fetchIP() {
+    for (let api of this.ipApis) {
+      try {
+        const data = await this.get(api.url, api.type);
+        const ip = api.type==='json'
+          ? (api.key? data[api.key]: data.ip)
+          : (data.match(/\d+\.\d+\.\d+\.\d+/)||[])[0];
+        if (ip) return ip;
+      } catch {}
+    }
+    throw new Error('Unable to retrieve IP');
+  }
+};
+
+async function fetchGeo(ip) {
+  for (let url of [
+    `https://ipapi.co/${ip}/json/`,
+    `https://api.ip.sb/geoip/${ip}`
+  ]) {
+    try { return await IP.get(url,'json'); }
+    catch {}
+  }
+  throw new Error('Unable to retrieve geographic information');
+}
+
+const pingSites = { Baidu:'https://www.baidu.com', Taobao:'https://www.taobao.com', YouTube:'https://www.youtube.com', Google:'https://www.google.com', GitHub:'https://www.github.com', OpenAI:'https://www.openai.com' };
+async function checkAllPings() {
+  const res = {};
+  for (let [name,url] of Object.entries(pingSites)) {
+    try {
+      const t0 = performance.now();
+      await fetch(url,{mode:'no-cors',cache:'no-cache'});
+      res[name] = Math.round(performance.now()-t0);
+    } catch {
+      res[name] = 'Timeout';
+    }
+  }
+  return res;
+}
+
+async function showIpDetailModal() {
+  const modalEl = document.getElementById('ipDetailModal');
+  const modal   = new bootstrap.Modal(modalEl,{backdrop:'static',keyboard:false});
+  modal.show();
+
+  modalEl.querySelectorAll('.detail-value').forEach(el=>el.innerHTML=`<span class="spinner-border spinner-border-sm"></span>`);
+  document.getElementById('delayInfo').innerHTML=`<span class="spinner-border spinner-border-sm"></span>`;
+  document.querySelector('.map-coord-row').style.display='none';
+  document.querySelector('.map-container').style.display='none';
+
+  try {
+    const ip  = await IP.fetchIP();
+    const geo = await fetchGeo(ip);
+
+    const parts = [geo.city,geo.region,geo.country_name].filter(Boolean);
+    const unique = parts.filter((v,i,a)=>a.indexOf(v)===i).join(' ');
+    const locationText = await translateText(unique);
+
+    let isp = geo.org || geo.isp || '';
+    isp = await translateText(isp);
+
+    const asn = geo.asn || geo.as?.split(' ')[0] || '   ';
+    const asnName = geo.asn_org || geo.as_name || geo.as?.split(' ').slice(1).join(' ') || '';
+    const asnNameTranslated = await translateText(asnName);
+
+    const vals = modalEl.querySelectorAll('.detail-row .detail-value');
+    vals[0].textContent = ip;
+    vals[1].textContent = locationText;
+    vals[2].textContent = isp;
+    vals[3].textContent = [asn, asnNameTranslated].filter(Boolean).join(' ');
+    vals[4].textContent = geo.timezone || '';
+
+    if (geo.latitude && geo.longitude) {
+      document.querySelector('.map-coord-row').style.display='flex';
+      document.querySelector('.map-coord-row .detail-value').textContent = `${geo.latitude}, ${geo.longitude}`;
+      document.querySelector('.map-container').style.display='block';
+
+      setTimeout(()=>{
+        if (window._leafletMap) window._leafletMap.remove();
+        window._leafletMap = L.map('leafletMap').setView([geo.latitude,geo.longitude],10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(window._leafletMap);
+        L.marker([geo.latitude,geo.longitude])
+         .addTo(window._leafletMap)
+         .bindPopup(locationText).openPopup();
+         window._leafletMap.addControl(new L.Control.FullScreen({
+             position: 'topright',
+             title: ' ',
+             titleCancel: ' ',
+             content: '<i class="fas fa-expand"></i>',
+             contentCancel: '<i class="fas fa-compress"></i>'
+         }));
+      },200);
+    }
+
+    const p = await checkAllPings();
+    document.getElementById('delayInfo').innerHTML = Object.entries(p).map(([n,t])=>{
+      const color = typeof t==='number'
+        ? (t<300?'#09B63F':t<700?'#FFA500':'#ff6b6b')
+        : '#ff6b6b';
+      return `<span style="margin-right:20px;color:${color}">${n}: ${t==='Timeout'?'Timeout':t+'ms'}</span>`;
+    }).join('');
+
+  } catch (err) {
+    console.error(err);
+    modalEl.querySelector('.modal-body').innerHTML = `
+      <div style="padding:20px;text-align:center;color:#c00;">
+        <p>Failed to retrieve the information, please try again later.</p>
+      </div>`;
+  }
+}
+</script>
+
+<link rel="stylesheet" href="/luci-static/spectra/css/leaflet.css" />
+<script src="/luci-static/spectra/js/leaflet.js"></script>
+<link rel="stylesheet" href="/luci-static/spectra/css/Control.FullScreen.min.css">
+<script src="/luci-static/spectra/js/Control.FullScreen.min.js"></script>
+
+<style>
+
+#ipDetailModal .modal-body h5 {
+    margin: 20px 0 15px !important;
+}
+
+.detail-row {
+    display: flex;
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+
+.detail-label {
+    flex: 0 0 200px;
+    text-align: left;
+    font-weight: 500;
+    padding-right: 18px;
+}
+
+.detail-value {
+    flex: 1;
+    text-align: left;
+    word-break: break-all;
+    margin-left: 0;
+}
+
+.leaflet-popup-content-wrapper {
+    background-color: var(--header-bg) !important;
+    border-top: 1px solid var(--border-color) !important;
+    color: var(--accent-color) !important;
+}
+
+.leaflet-popup-tip {
+    background-color: var(--header-bg) !important;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const weatherIcon = document.getElementById("weatherIcon");
+  const cityNameDisplay = document.getElementById("cityNameDisplay");
+  const weatherText = document.getElementById("weatherText");
+
+  function owmCodeToWiClass(code) {
+    const map = {
+      '01d': 'day-sunny',    '01n': 'night-clear',
+      '02d': 'day-cloudy',   '02n': 'night-cloudy',
+      '03d': 'cloud',        '03n': 'cloud',
+      '04d': 'cloudy',       '04n': 'cloudy',
+      '09d': 'showers',      '09n': 'showers',
+      '10d': 'day-rain',     '10n': 'night-alt-rain',
+      '11d': 'thunderstorm', '11n': 'thunderstorm',
+      '13d': 'snow',         '13n': 'snow',
+      '50d': 'fog',          '50n': 'fog'
+    };
+    return map[code] || 'na';
+  }
+
+  async function getCurrentLanguage() {
+    try {
+      const res = await fetch('./save_language.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=get_language'
+      });
+      const data = await res.json();
+      if (data.success && data.language) return data.language;
+    } catch (_) {}
+    return 'zh';
+  }
+
+  async function loadWeather() {
+    try {
+      const lang = await getCurrentLanguage();
+      const localCity = localStorage.getItem('city');
+      const res = await fetch("./weather_translation.php");
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const cities = data.cities || {};
+
+      let cityKey = localCity && cities[localCity] ? localCity : Object.keys(cities)[0];
+      if (!cityKey) return;
+
+      const cityData = cities[cityKey];
+      const translations = cityData.translations || {};
+      const langData = translations[lang] || translations["zh"] || {};
+
+      const cityName = langData.city || cityKey;
+      const weatherDict = langData.weather || {};
+      const lastIcon = langData.lastIcon || "na";
+
+      const temp = cityData.temp != null ? Number(cityData.temp).toFixed(1) : '';
+
+      const weatherKey = Object.keys(weatherDict)[0];
+      const weatherValue = weatherDict[weatherKey] || "";
+
+      cityNameDisplay.textContent = cityName + " ";
+      weatherText.innerHTML = weatherValue + (temp !== '' ? `&nbsp;${temp}℃` : '');
+
+      const wiClass = owmCodeToWiClass(lastIcon);
+      weatherIcon.className = `wi wi-${wiClass}`;
+
+      const colorMap = {
+        '01d':'#FFD700','01n':'#FFE4B5',
+        '02d':'#C0C0C0','02n':'#A9A9A9',
+        '09d':'#00BFFF','09n':'#1E90FF',
+        '10d':'#1E90FF','10n':'#104E8B',
+        '11d':'#FFA500','11n':'#FF8C00',
+        '13d':'#ADD8E6','13n':'#B0E0E6',
+        '50d':'#C0C0C0','50n':'#808080'
+      };
+      weatherIcon.style.color = colorMap[lastIcon] || '#FFF';
+
+    } catch (_) {
+    }
+  }
+
+  await loadWeather();
+});
+</script>
+
+<script>
+let userInteracted = false;
+
+function toggleConfig() {
+    fetch("./theme-switcher.php", { 
+        method: "POST",
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            userInteracted = true;
+            updateStatus(data.mode);
+            
+            setTimeout(() => {
+                window.top.location.href = "/cgi-bin/luci/admin/spectra/media";
+            }, 3000);
+        } else {
+            document.getElementById("status").innerText = "Switch failed: " + data.error;
+        }
+    })
+    .catch(error => {
+        document.getElementById("status").innerText = "Request error: " + error;
+    });
+}
+
+function updateStatus(theme) {
+    const btn = document.getElementById("toggleButton");
+    const status = document.getElementById("status");
+    
+    if (theme === "dark") {
+        const message = translations['current_mode_dark'] || "Current Mode: Dark Mode";
+        btn.innerHTML = `<i class="bi bi-sun"></i> ${translations['switch_to_light_mode'] || 'Switch to Light Mode'}`;
+        status.innerText = message;
+
+        if (userInteracted && typeof showLogMessage === 'function') {
+            showLogMessage(message);
+        }
+        if (userInteracted && typeof speakMessage === 'function') {
+            speakMessage(message);
+        }
+    } else {
+        const message = translations['current_mode_light'] || "Current Mode: Light Mode";
+        btn.innerHTML = `<i class="bi bi-moon"></i> ${translations['switch_to_dark_mode'] || 'Switch to Dark Mode'}`;
+        status.innerText = message;
+        if (userInteracted && typeof showLogMessage === 'function') {
+            showLogMessage(message);
+        }
+        if (userInteracted && typeof speakMessage === 'function') {
+            speakMessage(message);
+        }
+    }
+}
+
+fetch("./theme-switcher.php")
+    .then(res => res.json())
+    .then(data => {
+        if(data.mode) {
+            updateStatus(data.mode);
+        }
+    })
+    .catch(error => {
+        document.getElementById("status").innerText = "Error retrieving mode: " + error;
+    });
+</script>
