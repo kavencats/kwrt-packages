@@ -155,6 +155,17 @@ if (isset($_GET['action'])) {
                 usort($items, function($a, $b) {
                     if ($a['is_dir'] && !$b['is_dir']) return -1;
                     if (!$a['is_dir'] && $b['is_dir']) return 1;
+                    preg_match('/(\d+)/', $a['name'], $matchesA);
+                    preg_match('/(\d+)/', $b['name'], $matchesB);
+    
+                    if (isset($matchesA[1]) && isset($matchesB[1])) {
+                        $numA = intval($matchesA[1]);
+                        $numB = intval($matchesB[1]);
+        
+                        if ($numA !== $numB) {
+                            return $numA - $numB;
+                        }
+                    }
                     return strcasecmp($a['name'], $b['name']);
                 });
                 
@@ -1163,14 +1174,85 @@ if (isset($_GET['action'])) {
         exit;
     }
 
+    if ($action === 'transcode') {
+        $path = isset($_GET['path']) ? urldecode($_GET['path']) : '';
+        $format = isset($_GET['format']) ? $_GET['format'] : 'mp4';
+        
+        $realPath = realpath($path);
+        if (!$realPath || strpos($realPath, $ROOT_DIR) !== 0) {
+            http_response_code(403);
+            exit;
+        }
+        
+        $ffmpeg = '/usr/bin/ffmpeg';
+        if (!file_exists($ffmpeg)) {
+            http_response_code(500);
+            exit('FFmpeg not found');
+        }
+        
+        header('Content-Type: video/mp4');
+        header('Content-Disposition: inline');
+        
+        $cmd = "$ffmpeg -i " . escapeshellarg($realPath) . 
+               " -c:v libx264 -preset ultrafast -tune zerolatency" .
+               " -c:a aac -f mp4 -movflags frag_keyframe+empty_moov pipe:1 2>/dev/null";
+        
+        passthru($cmd);
+        exit;
+    }
+
     if ($action === 'full_scan') {
         header('Content-Type: application/json');
-    
         $media = ['music' => [], 'video' => [], 'image' => []];
         $files = scanDirectory($ROOT_DIR, 20);
-    
         foreach ($files as $file) {
             $ext = $file['ext'];
+            
+            if (in_array($ext, ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', '3gp', 'ogv', 'mpg', 'mpeg', 
+                               'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'])) {
+                if (in_array($ext, ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', '3gp', 'ogv', 'mpg', 'mpeg'])) {
+                    $handle = fopen($file['path'], 'rb');
+                    $firstChunk = fread($handle, 65536);
+                    fclose($handle);
+                    $contentHash = md5($firstChunk . $file['size']);
+                    $cacheInfo = './video_thumbs/' . $contentHash . '.json';
+                    
+                    if (file_exists($cacheInfo)) {
+                        $info = json_decode(file_get_contents($cacheInfo), true);
+                        $durationSeconds = $info['duration'] ?? 0;
+                        $hours = floor($durationSeconds / 3600);
+                        $minutes = floor(($durationSeconds % 3600) / 60);
+                        $seconds = $durationSeconds % 60;
+                        
+                        if ($hours > 0) {
+                            $file['duration'] = sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
+                        } else {
+                            $file['duration'] = sprintf("%02d:%02d", $minutes, $seconds);
+                        }
+                    } else {
+                        $ffmpegPath = '/usr/bin/ffmpeg';
+                        $duration = '--:--';
+                        $cmd = $ffmpegPath . " -i " . escapeshellarg($file['path']) . " 2>&1";
+                        $output = shell_exec($cmd);
+                        if ($output && preg_match('/Duration: (\d{2}):(\d{2}):(\d{2})\.\d+/', $output, $matches)) {
+                            $duration = $matches[1] . ':' . $matches[2] . ':' . $matches[3];
+                        }
+                        $file['duration'] = $duration;
+                    }
+                } else {
+                    $ffmpegPath = '/usr/bin/ffmpeg';
+                    $duration = '--:--';
+                    $cmd = $ffmpegPath . " -i " . escapeshellarg($file['path']) . " 2>&1";
+                    $output = shell_exec($cmd);
+                    if ($output && preg_match('/Duration: (\d{2}):(\d{2}):(\d{2})\.\d+/', $output, $matches)) {
+                        $duration = $matches[1] . ':' . $matches[2] . ':' . $matches[3];
+                    }
+                    $file['duration'] = $duration;
+                }
+            } else {
+                $file['duration'] = '--:--';
+            }
+            
             foreach ($TYPE_EXT as $type => $exts) {
                 if (in_array($ext, $exts)) {
                     $media[$type][] = $file;
@@ -1178,16 +1260,15 @@ if (isset($_GET['action'])) {
                 }
             }
         }
-    
+
         foreach ($media as &$files) {
             usort($files, function($a, $b) {
                 return $b['mtime'] - $a['mtime'];
             });
         }
-    
+
         $cacheFile = './lib/media_cache.json';
         file_put_contents($cacheFile, json_encode($media));
-    
         echo json_encode(['success' => true]);
         exit;
     }
@@ -1278,7 +1359,7 @@ if (isset($_GET['action'])) {
     
         if (file_put_contents(
             $cacheFile,
-            json_encode($playlists, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            json_encode($playlists, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             LOCK_EX
         )) {
             echo json_encode(['success' => true]);
@@ -1286,6 +1367,115 @@ if (isset($_GET['action'])) {
             echo json_encode(['success' => false, 'error' => 'Failed to save playlist']);
         }
     
+        exit;
+    }
+
+    if ($action === 'video_thumbnail') {
+        $path = isset($_GET['path']) ? urldecode($_GET['path']) : '';
+        
+        $realPath = realpath($path);
+        if (!$realPath || strpos($realPath, $ROOT_DIR) !== 0) {
+            http_response_code(404);
+            exit;
+        }
+        
+        $ext = strtolower(pathinfo($realPath, PATHINFO_EXTENSION));
+        $videoExts = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', '3gp', 'ogv', 'mpg', 'mpeg'];
+        
+        if (!in_array($ext, $videoExts)) {
+            http_response_code(400);
+            exit;
+        }
+        
+        $ffmpegPath = '/usr/bin/ffmpeg';
+        if (!file_exists($ffmpegPath)) {
+            header('Content-Type: image/svg+xml');
+            echo '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#2196F3"><path d="M18 9v10H6V9h12zM16 7H8v2h8V7zm2-2H6v2h12V5z"/></svg>';
+            exit;
+        }
+        
+        $cacheDir = './video_thumbs/';
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+        
+        $handle = fopen($realPath, 'rb');
+        $firstChunk = fread($handle, 65536);
+        fclose($handle);
+        
+        $fileSize = filesize($realPath);
+        $contentHash = md5($firstChunk . $fileSize);
+        
+        $cacheFile = $cacheDir . $contentHash . '.jpg';
+        $cacheInfo = $cacheDir . $contentHash . '.json';
+        
+        if (file_exists($cacheFile) && file_exists($cacheInfo)) {
+            $info = json_decode(file_get_contents($cacheInfo), true);
+            if ($info && $info['size'] == $fileSize) {
+                header('Content-Type: image/jpeg');
+                header('Content-Length: ' . filesize($cacheFile));
+                header('Cache-Control: max-age=31536000');
+                header('X-Cache-Hit: true');
+                readfile($cacheFile);
+                exit;
+            }
+        }
+
+        $duration = '0';
+        $durationCmd = $ffmpegPath . " -i " . escapeshellarg($realPath) . " 2>&1";
+        $output = shell_exec($durationCmd);
+        if ($output && preg_match('/Duration: (\d{2}):(\d{2}):(\d{2})\.\d+/', $output, $matches)) {
+            $hours = intval($matches[1]);
+            $minutes = intval($matches[2]);
+            $seconds = intval($matches[3]);
+            $durationSeconds = $hours * 3600 + $minutes * 60 + $seconds;
+            $duration = round($durationSeconds);
+        }
+        
+        $cmd = $ffmpegPath . " -ss 00:00:01 -i " . escapeshellarg($realPath) .
+               " -vframes 1 -vf scale=320:-1 -q:v 2 -y " .
+               escapeshellarg($cacheFile) . " 2>&1";
+        
+        exec($cmd, $output, $returnCode);
+        
+        if ($returnCode === 0 && file_exists($cacheFile)) {
+            $cacheInfoData = [
+                'path' => $realPath,
+                'size' => $fileSize,
+                'hash' => $contentHash,
+                'duration' => $duration,
+                'created' => time()
+            ];
+            file_put_contents($cacheInfo, json_encode($cacheInfoData));
+            
+            header('Content-Type: image/jpeg');
+            header('Content-Length: ' . filesize($cacheFile));
+            header('Cache-Control: max-age=31536000');
+            header('X-Cache-Hit: false');
+            readfile($cacheFile);
+        } else {
+            header('Content-Type: image/svg+xml');
+            echo '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#2196F3"><path d="M18 9v10H6V9h12zM16 7H8v2h8V7zm2-2H6v2h12V5z"/></svg>';
+        }
+        exit;
+    }
+
+    if ($action === 'clean_thumbnail_cache') {
+        $cacheDir = './video_thumbs/';
+        
+        if (is_dir($cacheDir)) {
+            if (function_exists('exec')) {
+                exec('rm -rf ' . escapeshellarg($cacheDir));
+            } else {
+                deleteDirectory($cacheDir);
+            }
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'cleaned' => 'all',
+            'message' => 'Thumbnail cache cleared successfully'
+        ]);
         exit;
     }
 
@@ -2031,12 +2221,51 @@ if (isset($_GET['preview']) && $_GET['preview'] == '1' && isset($_GET['path'])) 
         ];
         
         $mimeType = $mimeMap[$ext] ?? 'application/octet-stream';
+        $size = filesize($realPath);
         
-        header('Content-Type: ' . $mimeType);
-        header('Content-Length: ' . filesize($realPath));
-        header('Cache-Control: max-age=3600');
-        readfile($realPath);
+        $range = isset($_SERVER['HTTP_RANGE']) ? $_SERVER['HTTP_RANGE'] : null;
+        
+        if ($range && preg_match('/^bytes=(\d+)-(\d*)$/', $range, $matches)) {
+            $start = intval($matches[1]);
+            $end = isset($matches[2]) && $matches[2] !== '' ? intval($matches[2]) : $size - 1;
+            
+            if ($start >= $size || $end >= $size) {
+                header('HTTP/1.1 416 Requested Range Not Satisfiable');
+                header('Content-Range: bytes */' . $size);
+                exit;
+            }
+            
+            header('HTTP/1.1 206 Partial Content');
+            header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
+            header('Content-Length: ' . ($end - $start + 1));
+            header('Content-Type: ' . $mimeType);
+            header('Accept-Ranges: bytes');
+            header('Cache-Control: max-age=3600');
+            
+            $fp = fopen($realPath, 'rb');
+            fseek($fp, $start);
+            $bytesToSend = $end - $start + 1;
+            $buffer = 8192;
+            
+            while ($bytesToSend > 0 && !feof($fp)) {
+                $readSize = min($buffer, $bytesToSend);
+                echo fread($fp, $readSize);
+                $bytesToSend -= $readSize;
+                flush();
+            }
+            fclose($fp);
+            
+        } else {
+            header('HTTP/1.1 200 OK');
+            header('Content-Type: ' . $mimeType);
+            header('Content-Length: ' . $size);
+            header('Accept-Ranges: bytes');
+            header('Cache-Control: max-age=3600');
+            
+            readfile($realPath);
+        }
         exit;
+        
     } else {
         http_response_code(404);
         header('Content-Type: text/plain');
@@ -2142,6 +2371,19 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     }
     date_default_timezone_set($timezone);
     $currentTime = date("Y-m-d H:i:s");
+
+    $cpuModel = 'Unknown';
+    if (file_exists('/proc/cpuinfo')) {
+        $cpuInfoContent = file_get_contents('/proc/cpuinfo');
+        if (preg_match('/model name\s*:\s*(.+)/', $cpuInfoContent, $matches)) {
+            $cpuModel = trim($matches[1]);
+            $cpuModel = preg_replace('/\bProcessor\b/i', '', $cpuModel);
+            $cpuModel = preg_replace('/\s+/', ' ', $cpuModel);
+            $cpuModel = trim($cpuModel);
+        } elseif (preg_match('/Hardware\s*:\s*(.+)/', $cpuInfoContent, $matches)) {
+            $cpuModel = trim($matches[1]);
+        }
+    }
     
     $cpuTemp = '--';
     $tempFiles = [
@@ -2258,6 +2500,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
     echo json_encode([
         'success' => true,
         'cpu_usage' => $cpuUsage,
+        'cpu_model' => $cpuModel,
         'mem_usage' => $memUsage,
         'mem_total' => $ramTotal,
         'mem_used' => $ramUsage,
@@ -2550,7 +2793,7 @@ body {
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    border: var(--border-strong);
+    border: var(--border-strong) !important;
     border-left-width: 3px;
     border-left-color: transparent;
     border-radius: 8px;
@@ -2560,24 +2803,6 @@ body {
         transform 0.25s ease,
         border-left-color 0.3s ease;
     will-change: transform;
-}
-
-.side-nav .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 15px;
-    color: var(--text-primary);
-    text-decoration: none;
-    transition: all 0.3s;
-    border: var(--border-strong) !important;
-    border-left: 3px solid transparent;
-    border-radius: 8px;
-    margin: 5px 0;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    position: relative;
-    overflow: hidden;
 }
 
 .side-nav .nav-item::before {
@@ -2596,6 +2821,20 @@ body {
 .side-nav .nav-item:hover::before {
     width: 300%;
     height: 300%;
+}
+
+#gridContainer::before {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px;
+    height: 475px;
+    background: url('/luci-static/spectra/img/os.svg') no-repeat center;
+    background-size: contain;
+    pointer-events: none;
+    z-index: 0;
 }
 
 .side-nav .nav-item:hover {
@@ -2751,16 +2990,39 @@ body {
 .player-content {
     flex: 1;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    padding: 20px;
+    padding: 40px 20px 20px 20px;
+    position: relative;
+}
+
+#videoPlayer,
+#audioPlayer,
+#imageViewer {
+    width: 100%;
+    border-radius: 8px;
+}
+
+#videoPlayer,
+#imageViewer {
+    max-height: calc(100vh - 120px);
+    object-fit: contain;
+}
+
+#videoPlayer {
+    background: #000;
+}
+
+#audioPlayer {
+    max-width: 600px;
 }
 
 #imageViewer {
     max-width: 100%;
     max-height: 80vh;
-    border-radius: 8px;
+    object-fit: contain;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border-radius: 8px;
 }
 
 .fullscreen-player {
@@ -2772,6 +3034,7 @@ body {
     background: #000;
     z-index: 1000;
     display: none;
+    animation: fadeIn 0.3s ease;
 }
 
 .fullscreen-player.active {
@@ -2837,41 +3100,6 @@ body {
     transform: translate(-50%, -50%);
     background: rgba(0, 0, 0, 0.8);
     border-radius: 10px;
-}
-
-.player-content {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    position: relative;
-}
-
-#videoPlayer {
-    width: 100%;
-    max-height: calc(100vh - 120px);
-    background: #000;
-    border-radius: 8px;
-    object-fit: contain;
-}
-
-#audioPlayer {
-    width: 100%;
-    max-width: 600px;
-    border-radius: 8px;
-}
-
-#imageViewer {
-    max-width: 90%;
-    max-height: 80vh;
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    object-fit: contain;
-}
-
-.fullscreen-player {
-    animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {
@@ -4283,21 +4511,24 @@ list-group:hover {
     color: var(--text-primary) !important;
 }
 
+.playlist-card.playing,
 .file-item.playing,
 .media-item.playing {
     background-color: rgba(76, 175, 80, 0.05) !important;
-    border-color: #4CAF50 !important;
+    border: 2px solid #4CAF50 !important;
     transform: translateY(-2px);
     position: relative;
     z-index: 10;
 }
 
+[data-theme="dark"] .playlist-card.playing,
 [data-theme="dark"] .file-item.playing,
 [data-theme="dark"] .media-item.playing {
     border: var(--glass-border) !important;
     box-shadow: var(--border-glow) !important;
 }
 
+.playlist-card.playing::after,
 .file-item.playing::after,
 .media-item.playing::after {
     content: '';
@@ -4316,6 +4547,7 @@ list-group:hover {
     animation: softPulse 2s infinite ease-in-out;
 }
 
+.playlist-card.playing::after,
 .file-item.playing:hover::after,
 .media-item.playing:hover::after {
     opacity: 1;
@@ -4344,6 +4576,205 @@ list-group:hover {
     0% { opacity: 0.7; transform: scale(1); }
     50% { opacity: 1; transform: scale(1.05); }
     100% { opacity: 0.7; transform: scale(1); }
+}
+
+#playlistItems {
+    padding: 1rem 1.5rem !important;
+    margin: 0;
+}
+
+.playlist-card {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+#playlistCount {
+    color: var(--accent-color) !important;
+}
+
+.player-nav-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 30px;
+    pointer-events: none;
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.player-content:hover .player-nav-overlay {
+    opacity: 1;
+}
+
+.player-nav-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    border: 2px solid var(--accent-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: all 0.3s ease;
+    transform: scale(0.9);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.player-nav-btn:hover {
+    background: var(--accent-color);
+    transform: scale(1.1);
+    box-shadow: 0 0 20px var(--accent-secondary);
+}
+
+.player-nav-btn i {
+    font-size: 24px;
+}
+
+.player-nav-btn.prev-btn {
+    margin-right: auto;
+}
+
+.player-nav-btn.next-btn {
+    margin-left: auto;
+}
+
+@media (max-width: 768px) {
+    .player-nav-overlay {
+        padding: 0 15px;
+    }
+    
+    .player-nav-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .player-nav-btn i {
+        font-size: 18px;
+    }
+}
+
+.player-content {
+    position: relative;
+}
+
+#videoPlayer, #audioPlayer, #imageViewer {
+    position: relative;
+    z-index: 10;
+}
+
+.video-thumb-card {
+    position: relative;
+    overflow: hidden;
+    border: none !important;
+    background: transparent !important;
+}
+
+.video-thumb-card .card-body {
+    padding: 0 !important;
+    position: relative;
+}
+
+.video-thumb-container {
+    position: relative;
+    width: 100%;
+    height: 150px;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.video-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.video-thumb-card:hover .video-thumb-img {
+    transform: scale(1.05);
+}
+
+.play-icon-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 2;
+}
+
+.video-thumb-card:hover .play-icon-overlay {
+    opacity: 1;
+}
+
+.video-title-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    padding: 20px 10px 10px 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+}
+
+.video-thumb-card:hover .video-title-overlay {
+    opacity: 1;
+}
+
+.duration-badge {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    z-index: 2;
+}
+
+.default-thumb {
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+}
+
+.media-duration {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    min-width: 0;
+    height: 24px;
+    border-radius: 28px;
+    padding: 0 10px;
+    backdrop-filter: blur(16px);
+    background: rgba(0, 0, 0, 0.3);
+    text-shadow: 0 0 2px #000;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    border: none;
+    line-height: 1;
 }
 </style>
 <div class="main-container">
@@ -4380,6 +4811,7 @@ list-group:hover {
             </div>
             
             <div class="actions">
+                <button class="btn btn-purple" data-bs-toggle="modal" data-bs-target="#playlistModal" data-translate-tooltip="tooltip_playlist"> <i class="fas fa-list"></i> <span data-translate="playlist">Playlist</span></button>
                 <button id="scanButton" class="btn btn-info" onclick="performFullScan()" data-translate-tooltip="full_scan_tooltip">
                     <i class="fas fa-search"></i>
                     <span data-translate="full_scan">Full Scan</span>
@@ -4392,13 +4824,13 @@ list-group:hover {
                     <i class="fas fa-toggle-off"></i>
                     <span data-translate="auto_play">Auto Play</span>
                 </button>
-                <button class="btn btn-pink" onclick="refreshMedia()">
+                <button class="btn btn-pink d-none d-sm-inline" onclick="refreshMedia()">
                     <i class="fas fa-redo"></i>
                     <span data-translate="refresh">Refresh</span>
                 </button>
-                <button class="btn btn-teal" onclick="toggleFullscreen()">
+                <button class="btn btn-teal" onclick="toggleFullscreen()" data-translate-tooltip="toggle_fullscreen">
                     <i class="fas fa-expand"></i>
-                    <span data-translate="fullscreen_play">Fullscreen Play</span>
+                    <span data-translate="enter_fullscreen">Fullscreen Play</span>
                 </button>
             </div>
         </div>
@@ -4498,26 +4930,26 @@ list-group:hover {
                                     <h5 class="card-title text-success mb-4" data-translate="media_statistics">Media Statistics</h5>
                                     <div class="row g-3">
                                         <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="display-6 text-success mb-2"><?= count($media['music']) ?></div>
-                                                <div class="text-white-50" data-translate="music_files">Music Files</div>
+                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center" style="height: 110px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                                                <div class="fs-4 text-success mb-1"><?= count($media['music']) ?></div>
+                                                <div class="text-white-50 small" data-translate="music_files">Music Files</div>
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="display-6 text-success mb-2"><?= count($media['video']) ?></div>
-                                                <div class="text-white-50" data-translate="video_files">Video Files</div>
+                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center" style="height: 110px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                                                <div class="fs-4 text-success mb-1"><?= count($media['video']) ?></div>
+                                                <div class="text-white-50 small" data-translate="video_files">Video Files</div>
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="display-6 text-success mb-2"><?= count($media['image']) ?></div>
-                                                <div class="text-white-50" data-translate="image_files">Image Files</div>
+                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center" style="height: 110px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                                                <div class="fs-4 text-success mb-1"><?= count($media['image']) ?></div>
+                                                <div class="text-white-50 small" data-translate="image_files">Image Files</div>
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="display-6 text-success mb-2">
+                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center" style="height: 110px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                                                <div class="fs-4 text-success mb-1">
                                                     <?= count($media['music']) + count($media['video']) + count($media['image']) ?>
                                                 </div>
                                                 <div class="text-white-50" data-translate="total_files">Total Files</div>
@@ -4533,54 +4965,34 @@ list-group:hover {
                                 <div class="card-body">
                                     <h5 class="card-title text-success mb-4" data-translate="quick_actions">Quick Actions</h5>
                                     <div class="row g-3">
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center quick-action-card" onclick="showSection('music')">
-                                                <div class="action-icon mb-3">
-                                                    <i class="fas fa-music fa-2x text-success"></i>
-                                                </div>
-                                                <div class="action-title text-white" data-translate="browse_music">Browse Music</div>
-                                                <div class="action-count small text-success mt-2">
-                                                    <?= count($media['music']) ?> <span data-translate="items">items</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center quick-action-card" onclick="showSection('video')">
-                                                <div class="action-icon mb-3">
-                                                    <i class="fas fa-video fa-2x text-primary"></i>
-                                                </div>
-                                                <div class="action-title text-white" data-translate="browse_video">Browse Video</div>
-                                                <div class="action-count small text-primary mt-2">
-                                                    <?= count($media['video']) ?> <span data-translate="items">items</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center quick-action-card" onclick="showSection('image')">
-                                                <div class="action-icon mb-3">
-                                                    <i class="fas fa-image fa-2x text-info"></i>
-                                                </div>
-                                                <div class="action-title text-white" data-translate="browse_images">Browse Images</div>
-                                                <div class="action-count small text-info mt-2">
-                                                    <?= count($media['image']) ?> <span data-translate="items">items</span>
-                                                </div>
+                                        <?php
+                                        $actions = [
+                                            ['id' => 'music', 'icon' => 'fa-music', 'color' => 'text-success', 'label' => 'browse_music', 'count' => count($media['music'])],
+                                            ['id' => 'video', 'icon' => 'fa-video', 'color' => 'text-primary', 'label' => 'browse_video', 'count' => count($media['video'])],
+                                            ['id' => 'image', 'icon' => 'fa-image', 'color' => 'text-info', 'label' => 'browse_images', 'count' => count($media['image'])],
+                                            ['id' => 'recent', 'icon' => 'fa-history', 'color' => 'text-warning', 'label' => 'recent_play', 'count' => !empty($recent) ? count($recent) : 0]
+                                        ];
+                                        foreach ($actions as $action): ?>
+                                            <div class="col-6">
+                                                <div class="bg-black bg-opacity-25 rounded p-3 text-center quick-action-card"
+                                                    onclick="showSection('<?= $action['id'] ?>')"
+                                                    style="height: 110px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer;">
+                                                   <div class="mb-2">
+                                                       <i class="fas <?= $action['icon'] ?> <?= $action['color'] ?> fs-4"></i>
+                                                   </div>
+                                                   <div class="text-white small fw-medium" data-translate="<?= $action['label'] ?>">
+                                                       <?= ucfirst(str_replace('_', ' ', $action['label'])) ?>
+                                                   </div>
+                                                   <div class="small <?= $action['color'] ?> mt-1">
+                                                       <?= $action['count'] ?> <span data-translate="items">items</span>
+                                                   </div>
+                                               </div>
                                            </div>
-                                       </div>
-                                       <div class="col-6">
-                                          <div class="bg-black bg-opacity-25 rounded p-3 text-center quick-action-card" onclick="showSection('recent')">
-                                              <div class="action-icon mb-3">
-                                                  <i class="fas fa-history fa-2x text-warning"></i>
-                                              </div>
-                                              <div class="action-title text-white" data-translate="recent_play">Recent Play</div>
-                                              <div class="action-count small text-warning mt-2">
-                                                  <?= !empty($recent) ? count($recent) : 0 ?> <span data-translate="items">items</span>
-                                              </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                                       <?php endforeach; ?>
+                                   </div>
+                               </div>
+                           </div>
+                       </div>
 
                         <div class="col-lg-6">
                             <div class="card bg-dark border-secondary h-100">
@@ -4588,20 +5000,20 @@ list-group:hover {
                                     <h5 class="card-title text-success mb-4" data-translate="system_status">System Status</h5>
                                     <div class="row g-3 mb-3">
                                         <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="h3 text-success mb-2" id="cpuUsageDisplay">--%</div>
+                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center" style="height: 110px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                                                <div class="fs-4 text-success mb-1" id="cpuUsageDisplay">--%</div>
                                                 <div class="text-white-50" data-translate="cpu_usage">CPU Usage</div>
-                                                <div class="small text-secondary mt-2">
+                                                <div class="small text-secondary mt-1">
                                                     <i class="fas fa-microchip me-1"></i>
                                                     <span id="cpuCoresValue">--</span> <span data-translate="cores">cores</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center">
-                                                <div class="h3 text-primary mb-2" id="memUsageDisplay">--%</div>
+                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center" style="height: 110px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                                                <div class="fs-4 text-primary mb-1" id="memUsageDisplay">--%</div>
                                                 <div class="text-white-50" data-translate="memory_usage">Memory Usage</div>
-                                                <div class="small text-secondary mt-2">
+                                                <div class="small text-secondary mt-1">
                                                     <i class="fas fa-memory me-1"></i>
                                                     <span id="memUsedDisplay">--</span>/<span id="memTotalDisplay">--</span> MB
                                                 </div>
@@ -4630,8 +5042,8 @@ list-group:hover {
                                         </div>
                                         <div class="col-6">
                                             <div class="bg-black bg-opacity-25 rounded p-3 text-center status-tile d-flex flex-column justify-content-center">
-                                                <div class="h5 text-warning mb-2" id="timeValue">--:--:--</div>
-                                                <div class="small text-white-50" data-translate="system_time">System Time</div>
+                                                <div class="h5 text-cyan mb-2 text-truncate" style="color: #008B8B;" id="cpuModelDisplay">--</div>
+                                                <div class="small text-white-50" data-translate="cpu_model">CPU Model</div>
                                             </div>
                                         </div>
                                         <div class="col-6">
@@ -4646,9 +5058,15 @@ list-group:hover {
                                                 <div class="small text-white-50" data-translate="load_average">Load Average</div>
                                             </div>
                                         </div>
-                                        <div class="col-12">
-                                            <div class="bg-black bg-opacity-25  rounded p-3 text-center">
-                                                <div class="h4 text-purple mb-2" style="color: #9C27B0;" id="uptimeDisplay">--:--:--</div>
+                                        <div class="col-6">
+                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center status-tile d-flex flex-column justify-content-center">
+                                                <div class="h5 text-warning mb-2" id="timeValue">--:--:--</div>
+                                                <div class="small text-white-50" data-translate="system_time">System Time</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="bg-black bg-opacity-25 rounded p-3 text-center status-tile d-flex flex-column justify-content-center">
+                                                <div class="h5 text-purple mb-2" style="color: #9C27B0;" id="uptimeDisplay">--:--:--</div>
                                                 <div class="small text-white-50" data-translate="uptime">Uptime</div>
                                             </div>
                                         </div>
@@ -4768,11 +5186,12 @@ list-group:hover {
                     </div>
                     <?php else: ?>
                     <div class="media-grid">
-                        <?php foreach ($media['music'] as $item): 
+                        <?php foreach ($media['music'] as $index => $item):  
                             $path = $item['path'];
                             $file = basename($path);
                             $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
                             $size = $item['size'];
+                            $duration = $item['duration'] ?? '--:--'; 
                         ?>
                         <div class="media-item hover-playable" 
                              data-type="audio"
@@ -4785,10 +5204,11 @@ list-group:hover {
                              data-ext="<?= strtoupper($item['ext']) ?>"
                              onclick="playMedia('<?= $item['safe_path'] ?>')"
                              oncontextmenu="showFileInfoModal('<?= $item['safe_path'] ?>'); return false;">
+                                 <span class="media-duration"><?= $duration ?></span>
                             <div class="media-thumb"><i class="fas fa-music"></i></div>
                             <div class="media-info">
                                 <div class="media-name" title="<?= htmlspecialchars($item['safe_name'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= $item['safe_name'] ?>
+                                    <?= ($index + 1) . '. ' . $item['safe_name'] ?>
                                 </div>
                                 <div class="media-meta">
                                     <span><?= strtoupper($item['ext']) ?></span>
@@ -4816,13 +5236,13 @@ list-group:hover {
                     </div>
                     <?php else: ?>
                     <div class="media-grid">
-                        <?php foreach ($media['video'] as $item): 
+                        <?php foreach ($media['video'] as $index => $item): 
                             $path = $item['path'];
                             $file = basename($path);
                             $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
                             $size = $item['size'];
-
-                            $previewUrl = "?preview=1&path=" . urlencode($item['path']);
+                            $duration = $item['duration'] ?? '--:--'; 
+                            $thumbnailUrl = "?action=video_thumbnail&path=" . urlencode($item['path']);
                         ?>
                         <div class="media-item hover-playable" 
                              data-type="video"
@@ -4836,22 +5256,15 @@ list-group:hover {
                              onclick="playMedia('<?= $item['safe_path'] ?>')"
                              oncontextmenu="showFileInfoModal('<?= $item['safe_path'] ?>'); return false;">
                              <div class="media-thumb">
-                                 <video class="video-thumbnail" 
-                                     preload="metadata"
-                                     playsinline
-                                     muted
-                                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
-                                 <source src="<?= $previewUrl ?>" type="video/mp4">
-                                 <source src="<?= $previewUrl ?>" type="video/webm">
-                                 <source src="<?= $previewUrl ?>" type="video/ogg">
-                                 <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                                     <i class="fas fa-video"></i>
-                                 </div>
-                             </video>
-                         </div>
+                                 <img src="<?= $thumbnailUrl ?>" 
+                                     alt="<?= htmlspecialchars($item['safe_name']) ?>"
+                                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
+                                     onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-video\'></i>';">
+                                    <span class="media-duration"><?= $duration ?></span>
+                             </div>
                             <div class="media-info">
                                 <div class="media-name" title="<?= htmlspecialchars($item['safe_name'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= $item['safe_name'] ?>
+                                    <?= ($index + 1) . '. ' . $item['safe_name'] ?>
                                 </div>
                                 <div class="media-meta">
                                     <span><?= strtoupper($item['ext']) ?></span>
@@ -4879,7 +5292,7 @@ list-group:hover {
                     </div>
                     <?php else: ?>
                     <div class="media-grid">
-                        <?php foreach ($media['image'] as $item): 
+                        <?php foreach ($media['image'] as $index => $item): 
                             $path = $item['path'];
                             $file = basename($path);
                             $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
@@ -4904,7 +5317,7 @@ list-group:hover {
                             </div>
                             <div class="media-info">
                                 <div class="media-name" title="<?= htmlspecialchars($item['safe_name'], ENT_QUOTES, 'UTF-8') ?>">
-                                    <?= $item['safe_name'] ?>
+                                    <?= ($index + 1) . '. ' . $item['safe_name'] ?>
                                 </div>
                                 <div class="media-meta">
                                     <span><?= strtoupper($item['ext']) ?></span>
@@ -5082,10 +5495,11 @@ list-group:hover {
                         <span data-translate="media_player">Media Player</span>
                     </div>
                     <div class="player-actions">
-                        <button class="player-btn" onclick="toggleFullscreenPlayer()">
+
+                        <button class="player-btn" onclick="toggleFullscreenPlayer()" data-translate-tooltip="toggle_fullscreen">
                             <i class="fas fa-expand"></i>
                         </button>
-                        <button class="player-btn" onclick="closePlayer(); return false;">
+                        <button class="player-btn" onclick="closePlayer(); return false;" data-translate-tooltip="close">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -5105,6 +5519,14 @@ list-group:hover {
                             <li data-translate="reason_server_unreachable">Server cannot access the file</li>
                         </ul>
                     </div>
+                <div class="player-nav-overlay">
+                    <div class="player-nav-btn prev-btn" onclick="playPreviousMedia()">
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                        <div class="player-nav-btn next-btn" onclick="playNextMedia()">
+                            <i class="fas fa-chevron-right"></i>
+                       </div>
+                   </div>
                 </div>
             </div>
         </div>
@@ -5831,7 +6253,7 @@ list-group:hover {
 </div>
 
 <div class="modal fade" id="installModal" tabindex="-1" aria-labelledby="installModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="installModalLabel">
@@ -6046,25 +6468,83 @@ list-group:hover {
     </div>
 </div>
 
+<div class="modal fade" id="playlistModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-list me-2 text-success"></i>
+                    <span data-translate="playlist">Playlist</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="list-group list-group-flush"
+                     id="playlistItems"
+                     style="max-height: 60vh; overflow-y: auto;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto" id="playlistCount"></span>
+                <button type="button" 
+                        class="btn btn-pink me-2" 
+                        onclick="cleanThumbnailCache()"
+                        data-translate-tooltip="clean_thumbnail_cache">
+                    <i class="fas fa-trash-alt me-1"></i>
+                    <span data-translate="clean_thumbnails">Clean Thumbnails</span>
+                </button>
+                <button type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal" data-translate="cancel">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-let selectedMediaElement = null;
-let selectedMediaPath = '';
 let hoverAudio = null;
 let hoverVideo = null;
-let userInteracted = false;    
-let imageSwitchTimer = null;  
-let autoNextEnabled = true;   
-let currentMediaList = [];
-let currentMediaIndex = -1;
+let hoverVideoContainer = null;
+let currentPlaylist = [];
+let currentPlaylistIndex = -1;
+let autoNextEnabled = true;
+let imageSwitchTimer = null; 
+let userInteracted = false;
+let installEventSource = null;
+let batchRenameFiles = [];
+let convertFiles = [];
+let currentHashPath = null;
+let editorTabs = [];
+let activeEditorTab = null;
+let currentPath = '/';
+let selectedFiles = new Set();
+let viewMode = 'grid';
+let fileContextMenuTarget = null;
+let uploadFilesList = [];
+let currentView = 'files'; 
+let monacoEditor = null;
+let currentEditorMode = 'simple';
+let monacoLoaded = false;
+let monacoLoading = false;
+let completionProvidersRegistered = false;
+let playlistCache = {};
+let sidebarCollapsed = false;
+let isResizing = false;
+let isPlayerResizing = false;
+let startX, startWidth, startPlayerWidth;
+let cpuChart = null;
+let memChart = null;
+let cpuData = [];
+let memData = [];
+let timeLabels = [];
+let maxDataPoints = 30;
+let networkHistory = [];
+let systemMonitorInterval = null;
+let lastNetworkRx = 0;
+let lastNetworkTx = 0;    
 
-function handleThumbError(img) {
-    img.style.display = 'none';
-    const thumb = img.parentElement;
-    if (thumb) {
-        thumb.innerHTML = '<i class="fas fa-image"></i>';
-    }
-}
-    
 let currentMedia = {
     type: null,
     src: null,
@@ -6143,11 +6623,8 @@ async function saveSectionPlaylistToCache(sectionId) {
     } catch (error) {
     }
 }
-     
-let playMediaTimeout = null;
-let lastPlayedPath = null;
 
-function actuallyPlayMedia(filePath) {
+function playMedia(filePath) {
     filePath = filePath.trim();
     if (filePath.startsWith('//')) {
         filePath = filePath.substring(1);
@@ -6157,8 +6634,64 @@ function actuallyPlayMedia(filePath) {
     const fileExt = fileName.split('.').pop().toLowerCase();
     const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
     const fileDir = filePath.substring(0, filePath.lastIndexOf('/')) || '/';
+
+    const audioExts = [
+        'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'wma', 'opus',
+        'ape', 'wv', 'tta', 'tak', 'dts', 'dsf', 'dff', 'sacd',
+        'mid', 'midi', 'rmi', 'kar', 'ac3', 'eac3', 'truehd', 'thd',
+        'pcm', 'adpcm', 'amr', 'awb', 'sln', 'vox', 'gsm', 'ra',
+        'ram', 'au', 'snd', 'voc', 'cda', '8svx', 'aiff', 'aif',
+        'aifc', 'afc', 'weba', 'mka', 'spx', 'oga', 'tta', 'm3u',
+        'm3u8', 'pls'
+    ];
     
-    const previewUrl = `?preview=1&path=${encodeURIComponent(filePath)}`;
+    const videoExts = [
+        'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', 'm4v',
+        '3gp', '3g2', 'ogv', 'mpg', 'mpeg', 'mpe', 'mpv', 'm2v',
+        'ts', 'm2ts', 'mts', 'm2t', 'tod', 'mod', 'vro', 'vob',
+        'ifo', 'bup', 'iso', 'img', 'rm', 'rmvb', 'rv', 'ra',
+        'ram', 'qt', 'hdmov', 'moov', 'dv', 'mqv', 'asf', 'asx',
+        'wm', 'wmx', 'wvx', 'divx', 'xvid', 'f4v', 'f4p', 'f4a',
+        'f4b', 'swf', 'fla', 'avchd', 'mxf', 'gxf', 'lxv', 'nsv',
+        'nut', 'nuv', 'ogm', 'ogx', 'bik', 'smk', 'vp6', 'vp7',
+        'vp8', 'vp9', 'av1', 'hevc', 'h264', 'h265'
+    ];
+    
+    const imageExts = [
+        'jpg', 'jpeg', 'jpe', 'jfif', 'png', 'gif', 'bmp', 'webp',
+        'svg', 'svgz', 'ico', 'cur', 'raw', 'cr2', 'cr3', 'crw',
+        'nef', 'nrw', 'arw', 'srf', 'sr2', 'raf', 'dng', 'orf',
+        'rw2', 'pef', 'ptx', 'x3f', 'erf', 'mrw', 'mef', 'mdc',
+        'kdc', 'dcr', 'k25', 'bay', 'bmq', 'ciff', 'psd', 'psb',
+        'ai', 'eps', 'epsf', 'epsi', 'tiff', 'tif', 'djvu', 'djv',
+        'jxr', 'wdp', 'hdp', 'heic', 'heif', 'heics', 'heifs',
+        'avci', 'avcs', 'exr', 'hdr', 'pfm', 'ppm', 'pgm', 'pbm',
+        'pnm', 'pcx', 'tga', 'icb', 'vda', 'vst', 'pix', 'pxr',
+        'xbm', 'xpm', 'wbmp', 'cals', 'fpx', 'fpx', 'pcd', 'psp',
+        'pspimage', 'xcf', 'kra', 'cpt', 'pat', 'abr'
+    ];
+    
+    const directlySupported = [
+        'mp4', 'webm', 'ogg', 'mkv', 'mov',
+        'mp3', 'wav', 'aac', 'm4a', 'flac', 'opus',
+        ...imageExts
+    ];
+
+    const isImage = imageExts.includes(fileExt);
+    const isAudio = audioExts.includes(fileExt);
+    const isVideo = videoExts.includes(fileExt);
+    
+    const needsTranscoding = !isImage && !directlySupported.includes(fileExt);
+
+    let previewUrl;
+    if (needsTranscoding) {
+        const format = isVideo ? 'mp4' : 'mp3';
+        previewUrl = `?action=transcode&path=${encodeURIComponent(filePath)}&format=${format}`;
+        //showLogMessage((translations['transcoding_play'] || 'Transcoding: {format} format').replace('{format}', fileExt.toUpperCase()), 'info');
+    } else {
+        previewUrl = `?preview=1&path=${encodeURIComponent(filePath)}`;
+    }
+    
     const audioPlayer = document.getElementById('audioPlayer');
     const videoPlayer = document.getElementById('videoPlayer');
     const imageViewer = document.getElementById('imageViewer');
@@ -6166,9 +6699,7 @@ function actuallyPlayMedia(filePath) {
     const playerArea = document.getElementById('playerArea');
     const playerTitle = document.getElementById('playerTitle');
 
-    if (fileExt !== 'jpg' && fileExt !== 'jpeg' && fileExt !== 'png' && 
-        fileExt !== 'gif' && fileExt !== 'bmp' && fileExt !== 'webp' && 
-        fileExt !== 'svg') {
+    if (!isImage) {
         const playingPrefix = translations['now_playing'] || 'Now playing';
         const playingMessage = `${playingPrefix}：${nameWithoutExt}`;
         showLogMessage(playingMessage);
@@ -6178,10 +6709,6 @@ function actuallyPlayMedia(filePath) {
     if (imageSwitchTimer) {
         clearInterval(imageSwitchTimer);
         imageSwitchTimer = null;
-    }
-    if (fileImageSwitchTimer) {
-        clearInterval(fileImageSwitchTimer);
-        fileImageSwitchTimer = null;
     }
     
     clearAllHighlights();
@@ -6194,11 +6721,8 @@ function actuallyPlayMedia(filePath) {
     audioPlayer.pause();
     videoPlayer.pause();
     
-    playerTitle.innerHTML = `<i class="fas fa-play"></i>${fileName}`;
-    
-    const musicExts = ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'];
-    const videoExts = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'];
-    const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+    const displayName = fileName.length > 30 ? fileName.substring(0, 27) + '...' : fileName;
+    playerTitle.innerHTML = `<i class="fas fa-play me-2"></i><span class="text-truncate" title="${fileName}">${displayName}</span>`; 
     
     audioPlayer.src = '';
     videoPlayer.src = '';
@@ -6220,64 +6744,16 @@ function actuallyPlayMedia(filePath) {
         };
     }
     
-    const currentSection = document.querySelector('.grid-section:not([style*="display: none"])')?.id || '';
-    const isFileManager = currentSection === 'filesSection';
-    highlightCurrentPlayingFile(filePath, isFileManager);
+    updatePlaylistAndIndex(filePath, fileDir);
     
-    if (isFileManager) {
-        let dirPlaylist = playlistCache[fileDir];
-        
-        if (!dirPlaylist || dirPlaylist.length === 0) {
-            dirPlaylist = [filePath];
-        }
-        
-        currentPlaylistDir = fileDir;
-        currentFileMediaList = dirPlaylist;
-        currentFileMediaIndex = currentFileMediaList.indexOf(filePath);
-        
-        if (currentFileMediaIndex === -1 && currentFileMediaList.length > 0) {
-            currentFileMediaIndex = 0;
-        }
-                
-        if (playlistCache[fileDir] && playlistCache[fileDir].length > 0) {
-            savePlaylistToCache(fileDir, playlistCache[fileDir]);
-        }
-    } 
-    else {
-        if (currentSection === 'musicSection' || currentSection === 'videoSection' || currentSection === 'imageSection') {
-            const playlist = [];
-            const mediaItems = document.querySelectorAll(`#${currentSection} .media-item`);
-            mediaItems.forEach(item => {
-                const dataSrc = item.getAttribute('data-src');
-                if (dataSrc) {
-                    const match = dataSrc.match(/path=([^&]+)/);
-                    if (match) {
-                        const path = decodeURIComponent(match[1]);
-                        playlist.push(path);
-                    }
-                }
-            });
-            
-            if (playlist.length > 0) {
-                currentMediaList = playlist;
-                currentMediaIndex = currentMediaList.indexOf(filePath);   
-                const firstFile = playlist[0];
-                const dir = firstFile.substring(0, firstFile.lastIndexOf('/')) || '/';
-                savePlaylistToCache(dir, playlist);
-            }
-        }
-    }
+    highlightCurrentPlayingFile(filePath);
     
-    if (musicExts.includes(fileExt)) {
+    if (isAudio) {
         audioPlayer.onerror = handleMediaError(audioPlayer, translations['audio'] || 'Audio');
         audioPlayer.onended = function() {
             clearAllHighlights();
             if (autoNextEnabled) {
-                if (isFileManager) {
-                    playNextFileMedia();
-                } else {
-                    playNextMedia();
-                }
+                playNextMedia();
             }
         };
         audioPlayer.src = previewUrl;
@@ -6290,17 +6766,19 @@ function actuallyPlayMedia(filePath) {
             clearAllHighlights();
         });
         currentMedia = { type: 'audio', src: previewUrl, path: filePath, ext: fileExt, wasPlaying: false };
+        
+        if (needsTranscoding) {
+            audioPlayer.onloadeddata = function() {
+                playerTitle.innerHTML = `<i class="fas fa-play"></i>${fileName}`;
+            };
+        }
     } 
-    else if (videoExts.includes(fileExt)) {
+    else if (isVideo) {
         videoPlayer.onerror = handleMediaError(videoPlayer, translations['video'] || 'Video');
         videoPlayer.onended = function() {
             clearAllHighlights();
             if (autoNextEnabled) {
-                if (isFileManager) {
-                    playNextFileMedia();
-                } else {
-                    playNextMedia();
-                }
+                playNextMedia();
             }
         };
         videoPlayer.src = previewUrl;
@@ -6313,19 +6791,21 @@ function actuallyPlayMedia(filePath) {
             clearAllHighlights();
         });
         currentMedia = { type: 'video', src: previewUrl, path: filePath, ext: fileExt, wasPlaying: false };
+        
+        if (needsTranscoding) {
+            videoPlayer.onloadeddata = function() {
+                playerTitle.innerHTML = `<i class="fas fa-play"></i>${fileName}`;
+            };
+        }
     } 
-    else if (imageExts.includes(fileExt)) {
+    else if (isImage) {
         imageViewer.onerror = handleMediaError(imageViewer, translations['image'] || 'Image');
         imageViewer.src = previewUrl;
         imageViewer.style.display = 'block';
         currentMedia = { type: 'image', src: previewUrl, path: filePath, ext: fileExt, wasPlaying: false };
         
         if (autoNextEnabled) {
-            if (isFileManager) {
-                startFileImageAutoSwitch();
-            } else {
-                startImageAutoSwitch();
-            }
+            startImageAutoSwitch();
         }
     } else {
         playError.style.display = 'block';
@@ -6333,9 +6813,39 @@ function actuallyPlayMedia(filePath) {
         clearAllHighlights();
     }
     
-    playerArea.classList.add('active');
-    setPlayerTitle(fileName);    
+    playerArea.classList.add('active'); 
     saveToRecent(filePath);
+    setTimeout(adjustNavButtons, 200);
+    setTimeout(adjustNavButtons, 800);
+}
+
+function adjustNavButtons() {
+    const playerContent = document.querySelector('.player-content');
+    const navOverlay = document.querySelector('.player-nav-overlay');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const imageViewer = document.getElementById('imageViewer');
+    
+    if (!playerContent || !navOverlay) return;
+    
+    let mediaElement = null;
+    if (videoPlayer.style.display === 'block') mediaElement = videoPlayer;
+    else if (imageViewer.style.display === 'block') mediaElement = imageViewer;
+    else return;
+    
+    if (!mediaElement) return;
+    
+    requestAnimationFrame(() => {
+        const mediaRect = mediaElement.getBoundingClientRect();
+        const contentRect = playerContent.getBoundingClientRect();
+        
+        const relativeTop = mediaRect.top - contentRect.top;
+        const relativeHeight = mediaRect.height;
+        
+        if (relativeTop >= 0 && relativeHeight > 0) {
+            navOverlay.style.top = relativeTop + 'px';
+            navOverlay.style.height = relativeHeight + 'px';
+        }
+    });
 }
 
 async function loadPlaylistCache() {
@@ -6345,9 +6855,186 @@ async function loadPlaylistCache() {
             const data = await response.json();
             if (data.success && data.playlist) {
                 playlistCache[currentPath] = data.playlist;
+                currentPlaylist = data.playlist;
             }
         }
     } catch (error) {
+        //console.error('Failed to load playlist cache:', error);
+    }
+}
+
+function restorePlayingHighlight() {
+    if (currentMedia && currentMedia.path) {
+        highlightCurrentPlayingFile(currentMedia.path);
+    }
+}
+
+async function updatePlaylistAndIndex(filePath, fileDir) {
+    try {
+        const response = await fetch(`?action=get_playlist&dir=${encodeURIComponent(fileDir)}`);
+        const data = await response.json();
+        
+        if (data.success && data.playlist && data.playlist.length > 0) {
+            currentPlaylist = data.playlist;
+        } else {
+            currentPlaylist = collectMediaFromCurrentView(fileDir);
+            if (currentPlaylist.length > 0) {
+                await savePlaylistToCache(fileDir, currentPlaylist);
+            }
+        }
+        
+        currentPlaylistIndex = currentPlaylist.indexOf(filePath);
+        if (currentPlaylistIndex === -1 && currentPlaylist.length > 0) {
+            currentPlaylistIndex = 0;
+        }
+        
+        playlistCache[fileDir] = currentPlaylist;
+        
+    } catch (error) {
+        currentPlaylist = collectMediaFromCurrentView(fileDir);
+        currentPlaylistIndex = currentPlaylist.indexOf(filePath);
+        if (currentPlaylistIndex === -1 && currentPlaylist.length > 0) {
+            currentPlaylistIndex = 0;
+        }
+        playlistCache[fileDir] = currentPlaylist;
+    }
+}
+
+function collectMediaFromCurrentView(dir) {
+    const mediaFiles = [];
+    const mediaExts = [
+        'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'wma', 'opus',
+        'ape', 'wv', 'tta', 'tak', 'dts', 'dsf', 'dff', 'sacd',
+        'mid', 'midi', 'rmi', 'kar', 'ac3', 'eac3', 'truehd', 'thd',
+        'pcm', 'adpcm', 'amr', 'awb', 'sln', 'vox', 'gsm', 'ra',
+        'ram', 'au', 'snd', 'voc', 'cda', '8svx', 'aiff', 'aif',
+        'aifc', 'afc', 'weba', 'mka', 'spx', 'oga', 'tta', 'm3u', 'm3u8', 'pls',
+        'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', 'm4v',
+        '3gp', '3g2', 'ogv', 'mpg', 'mpeg', 'mpe', 'mpv', 'm2v',
+        'ts', 'm2ts', 'mts', 'm2t', 'tod', 'mod', 'vro', 'vob',
+        'ifo', 'bup', 'iso', 'img', 'rm', 'rmvb', 'rv', 'qt',
+        'hdmov', 'moov', 'dv', 'mqv', 'asf', 'asx', 'wm', 'wmx',
+        'wvx', 'divx', 'xvid', 'f4v', 'f4p', 'f4a', 'f4b', 'swf',
+        'fla', 'avchd', 'mxf', 'gxf', 'lxv', 'nsv', 'nut', 'nuv',
+        'ogm', 'ogx', 'bik', 'smk', 'vp6', 'vp7', 'vp8', 'vp9',
+        'av1', 'hevc', 'h264', 'h265',
+        'jpg', 'jpeg', 'jpe', 'jfif', 'png', 'gif', 'bmp', 'webp',
+        'svg', 'svgz', 'ico', 'cur', 'raw', 'cr2', 'cr3', 'crw',
+        'nef', 'nrw', 'arw', 'srf', 'sr2', 'raf', 'dng', 'orf',
+        'rw2', 'pef', 'ptx', 'x3f', 'erf', 'mrw', 'mef', 'mdc',
+        'kdc', 'dcr', 'k25', 'bay', 'bmq', 'ciff', 'psd', 'psb',
+        'ai', 'eps', 'epsf', 'epsi', 'tiff', 'tif', 'djvu', 'djv',
+        'jxr', 'wdp', 'hdp', 'heic', 'heif', 'heics', 'heifs',
+        'avci', 'avcs', 'exr', 'hdr', 'pfm', 'ppm', 'pgm', 'pbm',
+        'pnm', 'pcx', 'tga', 'icb', 'vda', 'vst', 'pix', 'pxr',
+        'xbm', 'xpm', 'wbmp', 'cals', 'fpx', 'fpx', 'pcd', 'psp',
+        'pspimage', 'xcf', 'kra', 'cpt', 'pat', 'abr'
+    ];
+    
+    const currentSection = document.querySelector('.grid-section:not([style*="display: none"])')?.id || '';
+    
+    if (currentSection === 'filesSection') {
+        document.querySelectorAll('.file-item').forEach(item => {
+            const path = item.getAttribute('data-path');
+            const isDir = item.getAttribute('data-is-dir') === 'true';
+            
+            if (!isDir && path) {
+                const ext = path.split('.').pop().toLowerCase();
+                if (mediaExts.includes(ext)) {
+                    mediaFiles.push(path);
+                }
+            }
+        });
+    } else {
+        const mediaItems = document.querySelectorAll(`#${currentSection} .media-item`);
+        mediaItems.forEach(item => {
+            const dataSrc = item.getAttribute('data-src');
+            if (dataSrc) {
+                const match = dataSrc.match(/path=([^&]+)/);
+                if (match) {
+                    const path = decodeURIComponent(match[1]);
+                    mediaFiles.push(path);
+                }
+            }
+        });
+    }
+    
+    return mediaFiles;
+}
+
+function playNextMedia() {
+    if (!autoNextEnabled) return;
+    if (currentPlaylist.length === 0 || currentPlaylistIndex === -1) return;
+    
+    const nextIndex = (currentPlaylistIndex + 1) % currentPlaylist.length;
+    const nextFilePath = currentPlaylist[nextIndex];
+    
+    if (nextFilePath) {
+        playMedia(nextFilePath);
+    }
+}
+
+function playPreviousMedia() {
+    if (!autoNextEnabled) return;
+    if (currentPlaylist.length === 0 || currentPlaylistIndex === -1) return;
+    
+    const prevIndex = (currentPlaylistIndex - 1 + currentPlaylist.length) % currentPlaylist.length;
+    const prevFilePath = currentPlaylist[prevIndex];
+    
+    if (prevFilePath) {
+        playMedia(prevFilePath);
+    }
+}
+
+function startImageAutoSwitch() {
+    if (imageSwitchTimer) {
+        clearInterval(imageSwitchTimer);
+    }
+    
+    if (!autoNextEnabled || currentPlaylist.length < 2) {
+        return;
+    }
+    
+    imageSwitchTimer = setInterval(() => {
+        playNextMedia();
+    }, 5000);
+}
+
+function clearAllHighlights() {
+    document.querySelectorAll('.file-item, .media-item, .playlist-card').forEach(item => {
+        item.classList.remove('playing');
+        item.style.backgroundColor = '';
+        item.style.borderColor = '';
+        item.style.boxShadow = '';
+        item.style.transform = '';
+    });
+}
+
+function highlightCurrentPlayingFile(filePath) {
+    clearAllHighlights();
+    
+    const fileItem = document.querySelector(`.file-item[data-path="${filePath}"]`);
+    if (fileItem) {
+        fileItem.classList.add('playing');
+        fileItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    
+    const mediaItem = document.querySelector(`.media-item[data-src="?preview=1&path=${encodeURIComponent(filePath)}"]`);
+    if (mediaItem) {
+        mediaItem.classList.add('playing');
+        mediaItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    
+    const playlistCard = document.querySelector(`.playlist-card[data-path="${filePath}"]`);
+    if (playlistCard) {
+        playlistCard.classList.add('playing');
+        setTimeout(() => {
+            playlistCard.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'nearest'
+            });
+        }, 100);
     }
 }
 
@@ -6367,292 +7054,54 @@ async function savePlaylistToCache(dir, playlist) {
         });
         const data = await response.json();
         if (data.success) {
-            playlistCache[dir] = playlist;
+            //console.log('Playlist saved to cache');
         }
     } catch (error) {
+        //console.error('Failed to save playlist:', error);
     }
 }
 
-function updateCurrentPlaylist(dir, playlist, currentFile) {
-    currentPlaylistDir = dir;
-    if (playlist) {
-        playlistCache[dir] = playlist;
-    }
+function closePlayer() {
+    const playerArea = document.getElementById('playerArea');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const imageViewer = document.getElementById('imageViewer');
     
-    if (dir === currentPath) {
-        currentFileMediaList = playlistCache[dir] || [];
-        currentFileMediaIndex = currentFileMediaList.indexOf(currentFile);
-    }
-}
-
-function clearAllHighlights() {
-    document.querySelectorAll('.file-item').forEach(item => {
-        item.classList.remove('playing');
-        item.style.backgroundColor = '';
-        item.style.borderColor = '';
-        item.style.boxShadow = '';
-        item.style.transform = '';
-    });
-    
-    document.querySelectorAll('.media-item').forEach(item => {
-        item.classList.remove('playing');
-        item.style.backgroundColor = '';
-        item.style.borderColor = '';
-        item.style.boxShadow = '';
-        item.style.transform = '';
-    });
-}
-
-function highlightCurrentPlayingFile(filePath, isFileManager) {
-    clearAllHighlights();
-    
-    if (isFileManager) {
-        const fileItem = document.querySelector(`.file-item[data-path="${filePath}"]`);
-        if (fileItem) {
-            fileItem.classList.add('playing');
-            fileItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-    } else {
-        const mediaItem = document.querySelector(`.media-item[data-src="?preview=1&path=${encodeURIComponent(filePath)}"]`);
-        if (mediaItem) {
-            mediaItem.classList.add('playing');
-            mediaItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
         }
     }
-}
-
-function restorePlayingHighlight() {
-    if (currentMedia && currentMedia.path) {
-        const currentSection = document.querySelector('.grid-section:not([style*="display: none"])')?.id || '';
-        const isFileManager = currentSection === 'filesSection';
-        
-        if (isFileManager) {
-            const fileExists = currentFileMediaList.includes(currentMedia.path);
-            if (fileExists) {
-                highlightCurrentPlayingFile(currentMedia.path, true);
-            } else {
-                clearAllHighlights();
-            }
-        } else {
-            let mediaExists = false;
-            if (currentSection === 'musicSection' && currentMedia.type === 'audio') {
-                mediaExists = currentMediaList.includes(currentMedia.path);
-            } else if (currentSection === 'videoSection' && currentMedia.type === 'video') {
-                mediaExists = currentMediaList.includes(currentMedia.path);
-            } else if (currentSection === 'imageSection' && currentMedia.type === 'image') {
-                mediaExists = currentMediaList.includes(currentMedia.path);
-            }
-            
-            if (mediaExists) {
-                highlightCurrentPlayingFile(currentMedia.path, false);
-            } else {
-                clearAllHighlights();
-            }
-        }
-    }
-}
-
-function playMedia(filePath) {
-    if (playMediaTimeout) {
-        clearTimeout(playMediaTimeout);
-    }
     
-    if (lastPlayedPath === filePath) {
-        playMediaTimeout = setTimeout(() => {
-            actuallyPlayMedia(filePath);
-        }, 100);
-        return;
-    }
-    
-    lastPlayedPath = filePath;
-    actuallyPlayMedia(filePath);
-}
-
-function updateCurrentFileMediaList() {
-    const fileItems = document.querySelectorAll('.file-item');
-    currentFileMediaList = [];
-    
-    const mediaExts = [
-        'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac',
-        'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm',
-        'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'
-    ];
-    
-    fileItems.forEach(item => {
-        const path = item.getAttribute('data-path');
-        const isDir = item.getAttribute('data-is-dir') === 'true';
-        
-        if (!isDir && path) {
-            const ext = path.split('.').pop().toLowerCase();
-            if (mediaExts.includes(ext)) {
-                currentFileMediaList.push(path);
-            }
-        }
-    });
-}
-
-function updateFileMediaList(filePath) {
-    const fileDir = filePath.substring(0, filePath.lastIndexOf('/')) || '/';
-    
-    if (playlistCache[fileDir] && playlistCache[fileDir].length > 0) {
-        currentFileMediaList = playlistCache[fileDir];
-        currentPlaylistDir = fileDir;
-    } else {
-        const fileItems = document.querySelectorAll('.file-item');
-        const newList = [];
-        
-        const mediaExts = [
-            'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac',
-            'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm',
-            'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'
-        ];
-        
-        fileItems.forEach(item => {
-            const path = item.getAttribute('data-path');
-            const isDir = item.getAttribute('data-is-dir') === 'true';
-            
-            if (!isDir && path) {
-                const ext = path.split('.').pop().toLowerCase();
-                if (mediaExts.includes(ext)) {
-                    newList.push(path);
-                }
-            }
-        });
-        
-        currentFileMediaList = newList;
-        currentPlaylistDir = fileDir;
-        playlistCache[fileDir] = newList;
-    }
-    
-    currentFileMediaIndex = currentFileMediaList.indexOf(filePath);
-}
-
-function startFileImageAutoSwitch() {
-    if (fileImageSwitchTimer) {
-        clearInterval(fileImageSwitchTimer);
-    }
-    
-    if (!autoNextEnabled || currentFileMediaList.length < 2) {
-        return;
-    }
-    
-    fileImageSwitchTimer = setInterval(() => {
-        playNextFileMedia();
-    }, 5000);
-}
-
-function playNextFileMedia() {
-    if (!autoNextEnabled) {
-        return;
-    }
-
-    if (currentFileMediaList.length === 0 || currentFileMediaIndex === -1) {
-        return;
-    }
-    
-    const nextIndex = (currentFileMediaIndex + 1) % currentFileMediaList.length;
-    const nextFilePath = currentFileMediaList[nextIndex];
-    
-    if (nextFilePath) {
-        playMedia(nextFilePath);
-    }
-}
-
-function playPreviousFileMedia() {
-    if (!autoNextEnabled) {
-        return;
-    }
-
-    if (currentFileMediaList.length === 0 || currentFileMediaIndex === -1) {
-        return;
-    }
-    
-    const prevIndex = (currentFileMediaIndex - 1 + currentFileMediaList.length) % currentFileMediaList.length;
-    const prevFilePath = currentFileMediaList[prevIndex];
-    
-    if (prevFilePath) {
-        playMedia(prevFilePath);
-    }
-}
-
-function setPlayerTitle(fileName) {
-    const playerTitle = document.getElementById('playerTitle');
-    
-    const icon = playerTitle.querySelector('i');
-    playerTitle.innerHTML = '';
-    if (icon) {
-        playerTitle.appendChild(icon);
-    } else {
-        const playIcon = document.createElement('i');
-        playIcon.className = 'fas fa-play';
-        playerTitle.appendChild(playIcon);
-    }
-    
-    const textSpan = document.createElement('span');
-    textSpan.className = 'player-title-text truncate';
-    textSpan.textContent = fileName;
-    textSpan.title = fileName;
-    
-    playerTitle.appendChild(textSpan);
-    
-    document.getElementById('playerArea').style.display = 'block';
-}
-    
-function updateCurrentMediaList(category, filePath) {
-    try {
-        const mediaLists = {
-            'music': <?php echo json_encode(array_column($media['music'] ?? [], 'path')); ?>,
-            'video': <?php echo json_encode(array_column($media['video'] ?? [], 'path')); ?>,
-            'image': <?php echo json_encode(array_column($media['image'] ?? [], 'path')); ?>
-        };
-        
-        currentMediaList = mediaLists[category] || [];
-        currentMediaIndex = currentMediaList.indexOf(filePath);
-        
-    } catch (e) {
-        console.error('Error updating media list:', e);
-        currentMediaList = [];
-        currentMediaIndex = -1;
-    }
-}
-    
-function startImageAutoSwitch() {
     if (imageSwitchTimer) {
         clearInterval(imageSwitchTimer);
+        imageSwitchTimer = null;
     }
     
-    if (!autoNextEnabled || currentMediaList.length < 2) {
-        return;
-    }
-        
-    imageSwitchTimer = setInterval(() => {
-        playNextMedia();
-    }, 5000);
+    clearAllHighlights();
+    
+    audioPlayer.pause();
+    videoPlayer.pause();
+    
+    playerArea.classList.remove('active');
+    playerArea.style.display = 'none'; 
+    
+    audioPlayer.style.display = 'none';
+    videoPlayer.style.display = 'none';
+    imageViewer.style.display = 'none';
+    
+    currentMedia = {
+        type: null,
+        src: null,
+        path: null,
+        ext: null,
+        wasPlaying: false
+    };
+    
+    currentPlaylist = [];
+    currentPlaylistIndex = -1;
 }
     
-function playNextMedia() {
-    if (!autoNextEnabled) return;
-    if (currentMediaList.length === 0 || currentMediaIndex === -1) return;
-    
-    const nextIndex = (currentMediaIndex + 1) % currentMediaList.length;
-    const nextFilePath = currentMediaList[nextIndex];
-    
-    if (nextFilePath) {
-        playMedia(nextFilePath);
-    }
-}
-
-function playNextFileMedia() {
-    if (!autoNextEnabled) return;
-    if (currentFileMediaList.length === 0 || currentFileMediaIndex === -1) return;
-    
-    const nextIndex = (currentFileMediaIndex + 1) % currentFileMediaList.length;
-    const nextFilePath = currentFileMediaList[nextIndex];
-    
-    if (nextFilePath) {
-        playMedia(nextFilePath);
-    }
-}
 function initAutoPlayToggle() {
     const toggleBtn = document.getElementById('autoNextToggle');
     if (toggleBtn) {
@@ -6723,8 +7172,7 @@ function saveToRecent(filePath) {
         localStorage.setItem('recent_media', JSON.stringify(recent));
         
         updateRecentList();
-    } catch (e) {
-    }
+    } catch (e) {}
 }
     
 function updateRecentList() {
@@ -6746,7 +7194,7 @@ function updateRecentList() {
         }
         
         const musicExts = ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'];
-        const videoExts = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'];
+        const videoExts = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', '3gp', 'ogv', 'mpg', 'mpeg'];
         
         recentList.innerHTML = recent.slice(0, 20).map(file => {
             const ext = file.split('.').pop().toLowerCase();
@@ -6769,52 +7217,9 @@ function updateRecentList() {
                 </div>
             </div>`;
         }).join('');
-    } catch (e) {
-    }
+    } catch (e) {}
 }
-    
-function closePlayer() {
-    const playerArea = document.getElementById('playerArea');
-    const audioPlayer = document.getElementById('audioPlayer');
-    const videoPlayer = document.getElementById('videoPlayer');
-    const imageViewer = document.getElementById('imageViewer');
-    
-    if (document.fullscreenElement) {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        }
-    }
-    
-    if (imageSwitchTimer) {
-        clearInterval(imageSwitchTimer);
-        imageSwitchTimer = null;
-    }
-    if (fileImageSwitchTimer) {
-        clearInterval(fileImageSwitchTimer);
-        fileImageSwitchTimer = null;
-    }
-    
-    clearAllHighlights();
-    
-    audioPlayer.pause();
-    videoPlayer.pause();
-    
-    playerArea.classList.remove('active');
-    playerArea.style.display = 'none'; 
-    
-    audioPlayer.style.display = 'none';
-    videoPlayer.style.display = 'none';
-    imageViewer.style.display = 'none';
-    
-    currentMedia = {
-        type: null,
-        src: null,
-        path: null,
-        ext: null,
-        wasPlaying: false
-    };
-}
-    
+        
 function toggleFullscreenPlayer() {
     const videoPlayer = document.getElementById('videoPlayer');
     const audioPlayer = document.getElementById('audioPlayer');
@@ -7100,17 +7505,6 @@ function stopHoverPlay() {
     }
 }
 
-let cpuChart = null;
-let memChart = null;
-let cpuData = [];
-let memData = [];
-let timeLabels = [];
-let maxDataPoints = 30;
-let networkHistory = [];
-let systemMonitorInterval = null;
-let lastNetworkRx = 0;
-let lastNetworkTx = 0;
-
 async function updateSystemInfo() {
     try {
         const response = await fetch('?ajax=1');
@@ -7122,6 +7516,7 @@ async function updateSystemInfo() {
             
             updateElementText('cpuUsageDisplay', cpuUsage.toFixed(1) + '%');
             updateElementText('cpuUsageValue', cpuUsage.toFixed(1) + '%');
+            updateElementText('cpuModelDisplay', data.cpu_model || 'Unknown');
             
             const cpuBar = document.getElementById('cpuUsageBar');
             if (cpuBar) {
@@ -7350,7 +7745,7 @@ function initCharts() {
             }
         });
     } catch (error) {
-        console.error('Error initializing charts:', error);
+        //console.error('Error initializing charts:', error);
     }
 }
 
@@ -7456,10 +7851,6 @@ function stopSystemMonitoring() {
         systemMonitorInterval = null;
     }
 }
-
-let isResizing = false;
-let isPlayerResizing = false;
-let startX, startWidth, startPlayerWidth;
 
 function initResizer() {
     const resizer = document.getElementById('resizer');
@@ -7687,8 +8078,6 @@ function loadSavedWidths() {
     }
 }
 
-let sidebarCollapsed = false;
-
 function toggleSidebar() {
     const sideNav = document.getElementById('sideNav');
     const toggleIcon = document.querySelector('.fa-server');
@@ -7769,8 +8158,8 @@ function updateFullscreenIcon() {
                 }
             } else {
                 icon.className = 'fas fa-expand';
-                if (translations['fullscreen_play']) {
-                    textSpan.textContent = translations['fullscreen_play'];
+                if (translations['enter_fullscreen']) {
+                    textSpan.textContent = translations['enter_fullscreen'];
                 } else {
                     textSpan.textContent = 'Fullscreen Play';
                 }
@@ -7804,267 +8193,6 @@ function updateFullscreenIcon() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    updateRecentList();
-    initHoverPlay();
-    initSidebarState();
-    initResizer();
-    loadSavedWidths();
-    startSystemMonitoring();
-    initAutoPlayToggle();
-    initDragAndDrop();
-    
-    if (typeof Chart !== 'undefined') {
-        startSystemMonitoring();
-    } else {
-        const script = document.createElement('script');
-        script.src = '/luci-static/spectra/js/chart.js';
-        script.onload = function() {
-            startSystemMonitoring();
-        };
-        document.head.appendChild(script);
-    }
-
-    document.addEventListener('fullscreenchange', updateFullscreenIcon);
-    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
-    document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
-    document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
-    
-    updateFullscreenIcon();
-
-    const playerArea = document.getElementById('playerArea');
-    const playerResizer = document.getElementById('playerResizer');
-    
-    const observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-            if (mutation.attributeName === 'class') {
-                if (playerArea.classList.contains('active')) {
-                    playerResizer.style.display = 'block';
-                } else {
-                    playerResizer.style.display = 'none';
-                }
-            }
-        });
-    });
-    
-    if (playerArea) {
-        observer.observe(playerArea, { attributes: true });
-    }
-});
-
-document.addEventListener('keydown', function(event) {
-    const target = event.target;
-    const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-    
-    if (isTyping) return;
-    
-    const isMonacoEditor = target.closest('.monaco-editor');
-    if (isMonacoEditor && (event.code === 'Space' || event.code === 'KeyF' || event.code === 'Escape')) {
-        return;
-    }
-    
-    switch(event.code) {
-        case 'Space':
-            event.preventDefault();
-            const audioPlayer = document.getElementById('audioPlayer');
-            const videoPlayer = document.getElementById('videoPlayer');
-            const fullscreenAudio = document.getElementById('fullscreenAudio');
-            const fullscreenVideo = document.getElementById('fullscreenVideo');
-            
-            if (fullscreenAudio && fullscreenAudio.style.display === 'block') {
-                if (fullscreenAudio.paused) fullscreenAudio.play();
-                else fullscreenAudio.pause();
-            } else if (fullscreenVideo && fullscreenVideo.style.display === 'block') {
-                if (fullscreenVideo.paused) fullscreenVideo.play();
-                else fullscreenVideo.pause();
-            } else if (audioPlayer && audioPlayer.style.display === 'block') {
-                if (audioPlayer.paused) audioPlayer.play();
-                else audioPlayer.pause();
-            } else if (videoPlayer && videoPlayer.style.display === 'block') {
-                if (videoPlayer.paused) videoPlayer.play();
-                else videoPlayer.pause();
-            }
-            break;
-            
-        case 'Escape':
-            const mediaContextMenu = document.getElementById('mediaContextMenu');
-            const fileContextMenu = document.getElementById('fileContextMenu');
-            const contextMenuOverlay = document.getElementById('contextMenuOverlay');
-            
-            if (mediaContextMenu && mediaContextMenu.style.display === 'block') {
-                hideContextMenu();
-                event.preventDefault();
-            } else if (fileContextMenu && fileContextMenu.style.display === 'block') {
-                hideFileContextMenu();
-                event.preventDefault();
-            } else if (contextMenuOverlay && contextMenuOverlay.style.display === 'block') {
-                hideContextMenu();
-                hideFileContextMenu();
-                event.preventDefault();
-            }
-            else if (document.getElementById('fullscreenPlayer')?.classList.contains('active')) {
-                closeFullscreenPlayer();
-                event.preventDefault();
-            }
-            else if (document.getElementById('playerArea')?.classList.contains('active')) {
-                closePlayer();
-                event.preventDefault();
-            }
-            else if (document.getElementById('filePropertiesModal')?.classList.contains('show')) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('filePropertiesModal'));
-                if (modal) modal.hide();
-                event.preventDefault();
-            }
-            else if (document.getElementById('fileInfoDialog')?.style.display === 'block') {
-                document.getElementById('fileInfoDialog').style.display = 'none';
-                if (contextMenuOverlay) contextMenuOverlay.style.display = 'none';
-                event.preventDefault();
-            }
-            break;
-            
-        case 'KeyF':
-            event.preventDefault();
-            toggleFullscreen();
-            break;
-            
-        case 'ArrowRight':
-            event.preventDefault();
-            const currentSection = document.querySelector('.grid-section:not([style*="display: none"])')?.id || '';
-            if (currentSection === 'filesSection') {
-                playNextFileMedia();
-            } else {
-                playNextMedia();
-            }
-            break;
-            
-        case 'ArrowLeft':
-            event.preventDefault();
-            const currentSectionLeft = document.querySelector('.grid-section:not([style*="display: none"])')?.id || '';
-            if (currentSectionLeft === 'filesSection') {
-                playPreviousFileMedia();
-            } else {
-                playPreviousMedia();
-            }
-            break;
-            
-        case 'KeyA':
-            if (event.altKey) {
-                event.preventDefault();
-                toggleAutoNext();
-            }
-            break;                     
-            
-        case 'KeyF':
-            if (event.ctrlKey || event.metaKey) {
-                event.preventDefault();
-                const searchInput = document.getElementById('searchInput');
-                const searchModal = document.getElementById('searchModal');
-                
-                if (searchInput) {
-                    if (searchModal) {
-                        const modal = new bootstrap.Modal(searchModal);
-                        modal.show();
-                    }
-                    setTimeout(() => {
-                        searchInput.focus();
-                        searchInput.select();
-                    }, 100);
-                }
-            }
-            break;
-            
-        case 'KeyS':
-            if ((event.ctrlKey || event.metaKey) && activeEditorTab) {
-                event.preventDefault();
-                saveEditorContent(activeEditorTab);
-            }
-            break;
-            
-        case 'Enter':
-            if ((event.ctrlKey || event.metaKey) && document.getElementById('searchInput')?.value.trim()) {
-                event.preventDefault();
-                searchFiles();
-            }
-            break;
-            
-        case 'KeyF':
-            if ((event.ctrlKey || event.metaKey) && event.shiftKey && activeEditorTab) {
-                event.preventDefault();
-                const tab = editorTabs.find(t => t.id === activeEditorTab);
-                if (tab && tab.editorMode === 'advanced') {
-                    formatCode(activeEditorTab);
-                }
-            }
-            break;
-            
-        case 'F5':
-            event.preventDefault();
-            refreshFiles();
-            break;
-            
-        case 'Delete':
-            if (selectedFiles.size > 0) {
-                event.preventDefault();
-                deleteSelected();
-            }
-            break;
-            
-        case 'KeyE':
-            if (event.ctrlKey || event.metaKey) {
-                event.preventDefault();
-                toggleView();
-            }
-            break;
-            
-        case 'KeyE':
-            if ((event.ctrlKey || event.metaKey) && event.shiftKey) {
-                event.preventDefault();
-                toggleView('editor');
-            }
-            break;
-            
-        case 'KeyF':
-            if ((event.ctrlKey || event.metaKey) && event.shiftKey) {
-                event.preventDefault();
-                toggleView('files');
-            }
-            break;
-            
-        case 'KeyW':
-            if ((event.ctrlKey || event.metaKey) && activeEditorTab) {
-                event.preventDefault();
-                closeEditorTab(activeEditorTab);
-            }
-            break;
-            
-        case 'KeyW':
-            if ((event.ctrlKey || event.metaKey) && event.shiftKey && editorTabs.length > 0) {
-                event.preventDefault();
-                closeAllEditorTabs();
-            }
-            break;
-    }
-});
-</script>
-
-<script>
-let currentPath = '/';
-let selectedFiles = new Set();
-let viewMode = 'grid';
-let fileContextMenuTarget = null;
-let currentFileMediaList = [];
-let currentFileMediaIndex = -1;
-let fileImageSwitchTimer = null;  
-let uploadFilesList = [];
-let currentView = 'files'; 
-let monacoEditor = null;
-let currentEditorMode = 'simple';
-let monacoLoaded = false;
-let monacoLoading = false;
-let completionProvidersRegistered = false;
-let playlistCache = {};
-let currentPlaylistDir = ''; 
-
 async function loadFiles(path) {
     const fileGrid = document.getElementById('fileGrid');
     const loadingEl = document.getElementById('loadingFiles');
@@ -8094,6 +8222,7 @@ async function loadFiles(path) {
             const mediaExts = [
                 'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac',
                 'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm',
+                '3gp', '3g2', 'ogv', 'mpg', 'mpeg', 
                 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'
             ];
             
@@ -8391,6 +8520,7 @@ function handleRightClick(event) {
         
         const mediaExts = ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 
                            'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm',
+                           '3gp', '3g2', 'ogv', 'mpg', 'mpeg',
                            'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
         if (!isDir && mediaExts.includes(ext)) {
             showMenuItem('filePlayItem');
@@ -8545,6 +8675,7 @@ function handleDoubleClick(path, isDir, type) {
         const mediaExts = [
             'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac',
             'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm',
+            '3gp', '3g2', 'ogv', 'mpg', 'mpeg',
             'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'
         ];
         
@@ -8732,17 +8863,68 @@ function handleFileClick(event, filePath) {
             const fileName = filePath.split('/').pop();
             const ext = fileName.toLowerCase().split('.').pop();
             
-            const audioExts = ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'];
-            const videoExts = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'];
-            const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
-            const textExts = [
-                'txt', 'log', 'conf', 'ini', 'json', 'xml', 'html', 'htm',
-                'css', 'js', 'php', 'py', 'sh', 'md', 'yaml', 'yml',
-                'csv', 'sql', 'bat', 'cmd'
+            const audioExts = [
+                'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'wma', 'opus',
+                'ape', 'wv', 'tta', 'tak', 'dts', 'dsf', 'dff', 'sacd',
+                'mid', 'midi', 'rmi', 'kar',
+                'ac3', 'eac3', 'truehd', 'thd', 'pcm', 'adpcm', 'amr',
+                'awb', 'sln', 'vox', 'gsm', 'ra', 'ram', 'au', 'snd',
+                'voc', 'cda', '8svx', 'aiff', 'aif', 'aifc', 'afc',
+                'weba', 'mka', 'spx', 'oga', 'tta', 'm3u', 'm3u8', 'pls'
             ];
+            
+            const videoExts = [
+                'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', 'm4v',
+                '3gp', '3g2', 'ogv', 'mpg', 'mpeg', 'mpe', 'mpv', 'm2v',
+                'ts', 'm2ts', 'mts', 'm2t', 'tod', 'mod', 'vro',
+                'vob', 'ifo', 'bup', 'iso', 'img',
+                'rm', 'rmvb', 'rv', 'ra', 'ram',
+                'qt', 'hdmov', 'moov', 'dv', 'mqv',
+                'asf', 'asx', 'wm', 'wmx', 'wvx',
+                'divx', 'xvid', 'f4v', 'f4p', 'f4a', 'f4b',
+                'swf', 'fla', 'avchd', 'mxf', 'gxf', 'lxv',
+                'nsv', 'nut', 'nuv', 'ogm', 'ogx', 'bik', 'smk',
+                'vp6', 'vp7', 'vp8', 'vp9', 'av1', 'hevc', 'h264', 'h265'
+            ];
+            
+            const imageExts = [
+                'jpg', 'jpeg', 'jpe', 'jfif', 'png', 'gif', 'bmp', 'webp',
+                'svg', 'svgz', 'ico', 'cur',
+                'raw', 'cr2', 'cr3', 'crw', 'nef', 'nrw', 'arw', 'srf', 'sr2',
+                'raf', 'dng', 'orf', 'rw2', 'pef', 'ptx', 'x3f', 'erf', 'mrw',
+                'mef', 'mdc', 'kdc', 'dcr', 'k25', 'bay', 'bmq', 'ciff',
+                'psd', 'psb', 'ai', 'eps', 'epsf', 'epsi',
+                'tiff', 'tif', 'djvu', 'djv', 'jxr', 'wdp', 'hdp',
+                'heic', 'heif', 'heics', 'heifs', 'avci', 'avcs',
+                'exr', 'hdr', 'pfm', 'ppm', 'pgm', 'pbm', 'pnm',
+                'pcx', 'tga', 'icb', 'vda', 'vst', 'pix', 'pxr',
+                'xbm', 'xpm', 'wbmp', 'cals', 'fpx', 'fpx', 'pcd',
+                'psp', 'pspimage', 'xcf', 'kra', 'cpt', 'pat', 'abr'
+            ];
+            
+            const textExts = [
+                'txt', 'log', 'conf', 'ini', 'cfg', 'config', 'properties',
+                'json', 'xml', 'html', 'htm', 'xhtml', 'css', 'scss', 'sass', 'less',
+                'js', 'jsx', 'ts', 'tsx', 'vue', 'php', 'php3', 'php4', 'php5', 'php7', 'phtml',
+                'py', 'pyw', 'rb', 'pl', 'pm', 'lua', 'go', 'rs', 'swift', 'kt', 'kts', 'scala',
+                'sh', 'bash', 'zsh', 'fish', 'ash', 'dash', 'bat', 'cmd', 'ps1', 'psm1',
+                'md', 'markdown', 'rst', 'tex', 'latex', 'yaml', 'yml', 'toml',
+                'csv', 'tsv', 'sql', 'mysql', 'pgsql', 'plsql',
+                'diff', 'patch', 'gitignore', 'gitattributes', 'editorconfig',
+                'dockerfile', 'makefile', 'cmake', 'gradle',
+                'hosts', 'nginx', 'apache', 'htaccess'
+            ];
+            
+            const installExts = ['ipk', 'apk', 'run'];
             
             if (audioExts.includes(ext) || videoExts.includes(ext) || imageExts.includes(ext)) {
                 playMedia(filePath);
+            }
+            else if (installExts.includes(ext)) {
+                selectedFiles.clear();
+                selectedFiles.add(filePath);
+                updateFileSelection();
+                showInstallDialog();
             }
             else if (textExts.includes(ext) || ext === '') {
                 editFile(filePath);
@@ -9090,6 +9272,7 @@ function showFileMenuItems(isDir, ext) {
     
     const mediaExts = ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 
                        'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm',
+                       '3gp', '3g2', 'ogv', 'mpg', 'mpeg',
                        'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
     if (!isDir && mediaExts.includes(ext)) {
         showMenuItem('filePlayItem');
@@ -9533,53 +9716,6 @@ function showCompressDialog() {
     modal.show();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const formatButtonsGroup = document.getElementById('formatButtonsGroup');
-    if (formatButtonsGroup) {
-        formatButtonsGroup.addEventListener('click', function(e) {
-            if (e.target.matches('button[data-format]')) {
-                const buttons = this.querySelectorAll('button[data-format]');
-                buttons.forEach(btn => btn.classList.remove('active'));
-                
-                e.target.classList.add('active');
-                
-                const format = e.target.getAttribute('data-format');
-                document.getElementById('archiveExtension').textContent = '.' + format;
-            }
-        });
-    }
-    
-    const uploadModal = document.getElementById('uploadModal');
-    if (uploadModal) {
-        uploadModal.addEventListener('show.bs.modal', function() {
-            uploadFilesList = [];
-            
-            const fileList = document.getElementById('fileList');
-            if (fileList) {
-                fileList.innerHTML = '';
-            }
-            
-            const fileListCard = document.getElementById('fileListCard');
-            if (fileListCard) {
-                fileListCard.style.display = 'none';
-            }
-            
-            const fileInput = document.getElementById('fileUploadInput');
-            if (fileInput) {
-                fileInput.value = '';
-            }
-        });
-    }
-    
-    setTimeout(() => {
-        initDragSelect();
-
-        if (document.getElementById('fileGrid')) {
-            loadPlaylistCache();
-        }
-    }, 500);
-});
-
 function browseForCompressPath() {
     const path = prompt('Enter destination path:', currentPath);
     if (path) {
@@ -9699,6 +9835,60 @@ async function extractArchiveHere(filePath) {
 
 function dirname(path) {
     return path.substring(0, path.lastIndexOf('/')) || '/';
+}
+
+function browseForExtractPath() {
+    const path = prompt('Please enter the extraction target path.:', currentPath);
+    if (path) {
+        document.getElementById('extractDestination').value = path;
+    }
+}
+
+async function performExtract() {
+    if (selectedFiles.size === 0) return;
+    
+    const path = Array.from(selectedFiles)[0];
+    const destination = document.getElementById('extractDestination').value.trim();
+    
+    if (!destination) {
+        return;
+    }
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('extractModal'));
+    if (modal) modal.hide();
+
+    try {
+        const formData = new FormData();
+        formData.append('path', path);
+        formData.append('action_type', 'extract');
+        formData.append('destination', destination);
+        
+        const response = await fetch('?action=archive_action', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const successMessage = translations['archive_extracted_successfully'] || 'Archive extracted successfully';
+            showLogMessage(successMessage, 'success');
+            speakMessage(successMessage, 'success');
+            
+            refreshFiles();
+        } else {
+            const errorMessage = data.error || translations['failed_to_extract_archive'] || 'Failed to extract archive';
+            showLogMessage(errorMessage, 'error');
+            speakMessage(errorMessage, 'error');
+        }
+    } catch (error) {
+        const errorMessage = `${translations['failed_to_extract_archive'] || 'Failed to extract archive'}: ${error.message}`;
+        showLogMessage(errorMessage, 'error');
+        speakMessage(errorMessage, 'error');
+    }
+    
+    selectedFiles.clear();
+    updateSelectionInfo();
 }
 
 function showExtractDialog() {
@@ -10402,6 +10592,15 @@ function getMimeType(ext) {
         'wmv': 'video/x-ms-wmv',
         'flv': 'video/x-flv',
         'webm': 'video/webm',
+        '3gp': 'video/3gpp',
+        '3g2': 'video/3gpp2',
+        'ogv': 'video/ogg',
+        'mpg': 'video/mpeg',
+        'mpeg': 'video/mpeg',
+        'm4v': 'video/x-m4v',
+        'ts': 'video/mp2t',
+        'mts': 'video/mpeg',
+        'm2ts': 'video/mpeg',
         
         'pdf': 'application/pdf',
         
@@ -10629,7 +10828,7 @@ async function searchFiles() {
                     fileNameDisplay = escapeHtml(file.name).replace(regex, '<span class="bg-warning text-dark">$1</span>');
                 }
 
-                const mediaExts = ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+                const mediaExts = [ 'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', '3gp', '3g2', 'ogv', 'mpg', 'mpeg', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg' ]
                 const fileExt = file.name.split('.').pop().toLowerCase();
                 const isMedia = mediaExts.includes(fileExt);
                 
@@ -10755,9 +10954,6 @@ function openFileDirectory(filePath, isDir) {
     showLogMessage(successMessage, 'info');
     speakMessage(successMessage, 'info');
 }
-
-let editorTabs = [];
-let activeEditorTab = null;
 
 function openEditor(path) {
     if (!path) return;
@@ -12512,6 +12708,7 @@ function getFileIcon(filename, ext, isDir) {
     if (['ovpn', 'wg'].includes(lowerExt)) {
         return '<i class="fas fa-shield-alt fa-2x" style="color: #4CAF50;"></i>';
     }
+
     
     if (['js', 'jsx', 'mjs', 'cjs'].includes(lowerExt)) return '<i class="fab fa-js-square fa-2x" style="color: #FFD600;"></i>';
     if (['ts', 'tsx'].includes(lowerExt)) return '<i class="fas fa-code fa-2x" style="color: #1976D2;"></i>';
@@ -12543,13 +12740,119 @@ function getFileIcon(filename, ext, isDir) {
     if (['txt', 'log', 'conf', 'ini', 'cfg', 'properties', 'env', 'gitignore', 'editorconfig', 'dockerfile', 'makefile'].includes(lowerExt)) return '<i class="fas fa-file-alt fa-2x" style="color: #757575;"></i>';
     if (['md', 'markdown', 'mdx'].includes(lowerExt)) return '<i class="fab fa-markdown fa-2x" style="color: #000000;"></i>';
     
-    if (['zip', 'tar', 'gz', 'bz2', '7z', 'rar', 'tgz', 'tbz2', 'xz', 'lz', 'cab', 'iso', 'apk', 'deb', 'rpm', 'dmg'].includes(lowerExt)) return '<i class="fas fa-file-archive fa-2x" style="color: #FF9800;"></i>';
-    
-    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tiff', 'tif', 'heic', 'heif', 'raw', 'cr2', 'nef', 'psd', 'ai', 'eps'].includes(lowerExt)) return '<i class="fas fa-file-image fa-2x" style="color: #4CAF50;"></i>';
-    
-    if (['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'wma', 'opus', 'mid', 'midi'].includes(lowerExt)) return '<i class="fas fa-file-audio fa-2x" style="color: #9C27B0;"></i>';
-    
-    if (['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', 'm4v', 'mpg', 'mpeg', 'ts', 'm2ts', 'rmvb', '3gp', 'vob', 'ogv', 'mts'].includes(lowerExt)) return '<i class="fas fa-file-video fa-2x" style="color: #2196F3;"></i>';
+    if (['zip'].includes(lowerExt)) 
+        return '<i class="fas fa-file-zipper fa-2x" style="color: #FF9800;"></i>';
+    if (['tar'].includes(lowerExt)) 
+        return '<i class="fas fa-file-archive fa-2x" style="color: #795548;"></i>';
+    if (['gz'].includes(lowerExt)) 
+        return '<i class="fas fa-file-archive fa-2x" style="color: #9C27B0;"></i>';
+    if (['bz2'].includes(lowerExt)) 
+        return '<i class="fas fa-file-archive fa-2x" style="color: #4CAF50;"></i>';
+    if (['xz'].includes(lowerExt)) 
+        return '<i class="fas fa-file-archive fa-2x" style="color: #00BCD4;"></i>';
+    if (['7z'].includes(lowerExt)) 
+        return '<i class="fas fa-file-archive fa-2x" style="color: #E91E63;"></i>';
+    if (['rar'].includes(lowerExt)) 
+        return '<i class="fas fa-file-archive fa-2x" style="color: #F44336;"></i>';
+    if (['tgz', 'tbz2'].includes(lowerExt)) 
+        return '<i class="fas fa-file-archive fa-2x" style="color: #FF5722;"></i>';
+    if (['lz', 'lzma'].includes(lowerExt)) 
+        return '<i class="fas fa-file-archive fa-2x" style="color: #673AB7;"></i>';
+    if (['cab'].includes(lowerExt)) 
+        return '<i class="fas fa-file-archive fa-2x" style="color: #3F51B5;"></i>';
+    if (['iso'].includes(lowerExt)) 
+        return '<i class="fas fa-compact-disc fa-2x" style="color: #607D8B;"></i>';
+    if (['apk'].includes(lowerExt)) 
+        return '<i class="fab fa-android fa-2x" style="color: #3DDC84;"></i>';
+    if (['deb'].includes(lowerExt)) 
+        return '<i class="fab fa-debian fa-2x" style="color: #A81D33;"></i>';
+    if (['rpm'].includes(lowerExt)) 
+        return '<i class="fab fa-redhat fa-2x" style="color: #EE0000;"></i>';
+    if (['dmg'].includes(lowerExt)) 
+        return '<i class="fas fa-apple-alt fa-2x" style="color: #999999;"></i>';  
+
+    if (['jpg', 'jpeg'].includes(lowerExt)) 
+        return '<i class="fas fa-image fa-2x" style="color: #4CAF50;"></i>';
+    if (['png'].includes(lowerExt)) 
+        return '<i class="fas fa-image fa-2x" style="color: #2196F3;"></i>';
+    if (['gif'].includes(lowerExt)) 
+        return '<i class="fas fa-image fa-2x" style="color: #FF9800;"></i>';
+    if (['bmp'].includes(lowerExt)) 
+        return '<i class="fas fa-image fa-2x" style="color: #9C27B0;"></i>';
+    if (['webp'].includes(lowerExt)) 
+        return '<i class="fas fa-image fa-2x" style="color: #00BCD4;"></i>';
+    if (['svg'].includes(lowerExt)) 
+        return '<i class="fas fa-draw-polygon fa-2x" style="color: #FFC107;"></i>';
+    if (['ico'].includes(lowerExt)) 
+        return '<i class="fas fa-circle fa-2x" style="color: #607D8B;"></i>';
+
+    if (['tiff', 'tif', 'heic', 'heif', 'raw', 'cr2', 'nef', 'psd', 'ai', 'eps'].includes(lowerExt)) 
+        return '<i class="fas fa-file-image fa-2x" style="color: #4CAF50;"></i>';
+
+    if (['mp3'].includes(lowerExt)) 
+        return '<i class="fas fa-music fa-2x" style="color: #FF6B6B;"></i>';
+    if (['wav'].includes(lowerExt)) 
+        return '<i class="fas fa-wave-square fa-2x" style="color: #45B7D1;"></i>';
+    if (['ogg'].includes(lowerExt)) 
+        return '<i class="fas fa-circle fa-2x" style="color: #96CEB4;"></i>';
+    if (['flac'].includes(lowerExt)) 
+        return '<i class="fas fa-compact-disc fa-2x" style="color: #4ECDC4;"></i>';
+    if (['m4a', 'aac'].includes(lowerExt)) 
+        return '<i class="fas fa-headphones fa-2x" style="color: #FFA07A;"></i>';
+
+    if (['wma', 'opus', 'mid', 'midi'].includes(lowerExt)) 
+        return '<i class="fas fa-file-audio fa-2x" style="color: #9C27B0;"></i>';
+
+    if (['mp4'].includes(lowerExt)) 
+        return '<i class="fas fa-film fa-2x" style="color: #2196F3;"></i>';
+    if (['avi'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #4CAF50;"></i>';
+    if (['mkv'].includes(lowerExt)) 
+        return '<i class="fas fa-film fa-2x" style="color: #9C27B0;"></i>';
+    if (['mov'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #FF9800;"></i>';
+    if (['wmv'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #607D8B;"></i>';
+    if (['flv'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #F44336;"></i>';
+    if (['webm'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #00BCD4;"></i>';
+    if (['m4v'].includes(lowerExt)) 
+        return '<i class="fas fa-film fa-2x" style="color: #FF6B6B;"></i>';
+    if (['mpg', 'mpeg'].includes(lowerExt)) 
+        return '<i class="fas fa-film fa-2x" style="color: #795548;"></i>';
+    if (['ts', 'm2ts'].includes(lowerExt)) 
+        return '<i class="fas fa-film fa-2x" style="color: #673AB7;"></i>';
+    if (['rmvb'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #E91E63;"></i>';
+    if (['3gp'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #3F51B5;"></i>';
+    if (['vob'].includes(lowerExt)) 
+        return '<i class="fas fa-compact-disc fa-2x" style="color: #FFC107;"></i>';
+    if (['ogv'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #4ECDC4;"></i>';
+    if (['mts'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #FF5722;"></i>';
+
+    if (['mp4'].includes(lowerExt)) 
+        return '<i class="fas fa-film fa-2x" style="color: #2196F3;"></i>';
+    if (['avi'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #4CAF50;"></i>';
+    if (['mkv'].includes(lowerExt)) 
+        return '<i class="fas fa-film fa-2x" style="color: #9C27B0;"></i>';
+    if (['mov'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #FF9800;"></i>';
+    if (['wmv'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #607D8B;"></i>';
+    if (['flv'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #F44336;"></i>';
+    if (['webm'].includes(lowerExt)) 
+        return '<i class="fas fa-video fa-2x" style="color: #00BCD4;"></i>';
+    if (['m4v'].includes(lowerExt)) 
+        return '<i class="fas fa-film fa-2x" style="color: #FF6B6B;"></i>';
+
+    if (['mpg', 'mpeg', 'ts', 'm2ts', 'rmvb', '3gp', 'vob', 'ogv', 'mts'].includes(lowerExt)) 
+        return '<i class="fas fa-file-video fa-2x" style="color: #2196F3;"></i>'; 
     
     if (['exe', 'msi', 'app', 'bat', 'cmd', 'sh', 'bash', 'zsh', 'fish', 'ps1', 'psm1', 'com'].includes(lowerExt)) return '<i class="fas fa-cog fa-2x" style="color: #795548;"></i>';
     if (['jar'].includes(lowerExt)) return '<i class="fab fa-java fa-2x" style="color: #007396;"></i>';
@@ -13137,7 +13440,7 @@ function createDiffEditorDialog(filename, content, tabId) {
                 </div>
 
                 <div class="modal-body p-0 d-flex flex-column">
-                    <div class="diff-toolbar p-2 border-bottom d-flex justify-content-between align-items-center">
+                    <div class="diff-toolbar p-2 d-flex justify-content-between align-items-center">
                         <div>
                             <span class="badge bg-primary me-2" data-translate="diff_left_label">Left: Original</span>
                             <span class="badge bg-success me-2" data-translate="diff_right_label">Right: Diff</span>
@@ -13164,7 +13467,7 @@ function createDiffEditorDialog(filename, content, tabId) {
 
                     <div id="diffEditorContainer" class="flex-grow-1"></div>
 
-                    <div class="diff-help p-2 border-top small text-muted">
+                    <div class="diff-help p-2 small text-muted">
                         <i class="fas fa-lightbulb me-1"></i>
                         <span data-translate="diff_help">Tip: When editing on the right, green = added, red = removed. Ctrl+V works on both sides.</span>
                     </div>
@@ -13347,6 +13650,17 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function contextMenuEdit() {
+    if (selectedFiles.size === 0) {
+        showLogMessage(translations['select_items_first'] || 'Please select items first', 'warning');
+        return;
+    }
+    
+    const path = Array.from(selectedFiles)[0];
+    editFile(path);
+    hideFileContextMenu();
+}
+
 function initEventListeners() {
     document.addEventListener('click', function(e) {
         const contextMenu = document.getElementById('fileContextMenu');
@@ -13388,7 +13702,7 @@ function initEventListeners() {
         menuItems.forEach(item => {
             const onclickAttr = item.getAttribute('onclick');
             if (onclickAttr) {
-                const funcName = onclickAttr.replace('onclick=', '').trim();
+                const funcName = onclickAttr.replace('onclick=', '').replace('()', '').trim();
                 item.removeAttribute('onclick');
                 item.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -13399,7 +13713,7 @@ function initEventListeners() {
                     else if (funcName === 'showFileProperties()') showFileProperties();
                     else if (funcName === 'contextMenuDelete()') contextMenuDelete();
                     else if (funcName.includes('prepare')) {
-                        eval(funcName);
+                        eval(funcName + '()');
                     }
                 });
             }
@@ -13430,8 +13744,6 @@ function openTerminal() {
     
     hideFileContextMenu();
 }
-
-let currentHashPath = null;
 
 async function showFileHashDialog() {
     if (selectedFiles.size !== 1) {
@@ -13542,8 +13854,6 @@ ${sha256Label} ${sha256}
     showLogMessage(successMsg);
     speakMessage(successMsg);
 }
-
-let installEventSource = null;
 
 function showInstallDialog() {
     if (selectedFiles.size !== 1) {
@@ -13844,8 +14154,6 @@ document.getElementById('installModal').addEventListener('hidden.bs.modal', func
     document.getElementById('installProgressText').textContent = '0%';
 });
 
-let batchRenameFiles = [];
-
 function showBatchRenameDialog() {
     if (selectedFiles.size === 0) {
         showLogMessage(translations['select_files_to_rename'] || 'Please select files to rename', 'warning');
@@ -14064,8 +14372,6 @@ async function executeBatchRename() {
     }
 }
 
-let convertFiles = [];
-
 function showConvertDialog() {
     if (selectedFiles.size === 0) {
         showLogMessage(translations['select_files_first'] || 'Please select files first', 'warning');
@@ -14075,7 +14381,7 @@ function showConvertDialog() {
     
     convertFiles = Array.from(selectedFiles).filter(path => {
         const ext = path.split('.').pop().toLowerCase();
-        const mediaExts = ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'];
+        const mediaExts = [ 'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', '3gp', '3g2', 'ogv', 'mpg', 'mpeg']
         return mediaExts.includes(ext);
     }).map(path => {
         const name = path.split('/').pop();
@@ -14239,19 +14545,36 @@ function appendConvertLog(message, type = 'normal') {
     log.scrollTop = log.scrollHeight;
 }
 
-function playPreviousMedia() {
-    if (!autoNextEnabled) return;
+async function cleanThumbnailCache() {
+    const confirmMessage = translations['confirm_clean_thumbnails'] || 
+                          'Are you sure you want to clean all video thumbnails?';
     
-    const playlist = playlistCache['/'] || [];
-    
-    if (playlist.length === 0) return;
-    
-    const currentIndex = playlist.indexOf(currentMedia?.path);
-    if (currentIndex === -1) return;
-    
-    const prevIndex = (currentIndex - 1 + playlist.length) % playlist.length;
-    playMedia(playlist[prevIndex]);
+    showConfirmation(confirmMessage, async () => {
+        try {
+            const response = await fetch('?action=clean_thumbnail_cache');
+            const data = await response.json();
+            
+            if (data.success) {
+                const successMsg = translations['thumbnails_cleaned'] || 'Thumbnail cache cleaned successfully';
+                showLogMessage(successMsg, 'success');
+                speakMessage(successMsg, 'success');
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 2500);
+            } else {
+                const errorMsg = translations['clean_thumbnails_failed'] || 'Failed to clean thumbnail cache';
+                showLogMessage(errorMsg, 'error');
+                speakMessage(errorMsg, 'error');
+            }
+        } catch (error) {
+            const errorMsg = (translations['clean_thumbnails_error'] || 'Error cleaning thumbnails') + ': ' + error.message;
+            showLogMessage(errorMsg, 'error');
+            speakMessage(errorMsg, 'error');
+        }
+    });
 }
+
 
 window.addEventListener('beforeunload', function(e) {
     const unsavedTabs = editorTabs.filter(tab => tab.modified);
@@ -14271,6 +14594,79 @@ window.addEventListener('beforeunload', function(e) {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+    updateRecentList();
+    initHoverPlay();
+    initSidebarState();
+    initResizer();
+    loadSavedWidths();
+    startSystemMonitoring();
+    initAutoPlayToggle();
+    initDragAndDrop();
+    
+    if (typeof Chart !== 'undefined') {
+        startSystemMonitoring();
+    } else {
+        const script = document.createElement('script');
+        script.src = '/luci-static/spectra/js/chart.js';
+        script.onload = function() {
+            startSystemMonitoring();
+        };
+        document.head.appendChild(script);
+    }
+
+    document.addEventListener('fullscreenchange', updateFullscreenIcon);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+    document.addEventListener('mozfullscreenchange', updateFullscreenIcon);
+    document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
+    updateFullscreenIcon();
+
+    const playerArea = document.getElementById('playerArea');
+    const playerResizer = document.getElementById('playerResizer');
+
+    const formatButtonsGroup = document.getElementById('formatButtonsGroup');
+    if (formatButtonsGroup) {
+        formatButtonsGroup.addEventListener('click', function(e) {
+            if (e.target.matches('button[data-format]')) {
+                const buttons = this.querySelectorAll('button[data-format]');
+                buttons.forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                const format = e.target.getAttribute('data-format');
+                document.getElementById('archiveExtension').textContent = '.' + format;
+            }
+        });
+    }
+    
+    const uploadModal = document.getElementById('uploadModal');
+    if (uploadModal) {
+        uploadModal.addEventListener('show.bs.modal', function() {
+            uploadFilesList = [];
+            
+            const fileList = document.getElementById('fileList');
+            if (fileList) {
+                fileList.innerHTML = '';
+            }
+            
+            const fileListCard = document.getElementById('fileListCard');
+            if (fileListCard) {
+                fileListCard.style.display = 'none';
+            }
+            
+            const fileInput = document.getElementById('fileUploadInput');
+            if (fileInput) {
+                fileInput.value = '';
+            }
+        });
+    }
+    
+    setTimeout(() => {
+        initDragSelect();
+
+        if (document.getElementById('fileGrid')) {
+            loadPlaylistCache();
+        }
+    }, 500);
+    
     const savedTheme = localStorage.getItem('editorTheme');
     if (!savedTheme) {
         localStorage.setItem('editorTheme', 'vs-dark');
@@ -14318,6 +14714,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('fileGrid')) {
         loadFiles('/');
     }
+
+    const events = [
+        'resize', 'scroll', 'load', 'loadedmetadata',
+        'playing', 'fullscreenchange'
+    ];
+    
+    events.forEach(event => {
+        window.addEventListener(event, adjustNavButtons);
+    });
+    
+    setInterval(adjustNavButtons, 1000);
 });
 
 document.getElementById("updatePhpConfig").addEventListener("click", function() {
@@ -14340,5 +14747,598 @@ document.getElementById("updatePhpConfig").addEventListener("click", function() 
             speakMessage(errMsg);
         });
     });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const playlistModalEl = document.getElementById('playlistModal');
+    let hoverVideoTimer = null;
+    let currentHoverCard = null;
+
+    playlistModalEl.addEventListener('show.bs.modal', async () => {
+        try {
+            const playlistContainer = document.getElementById('playlistItems');
+            const playlistCount = document.getElementById('playlistCount');
+            
+            playlistContainer.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading playlist...</p>
+                </div>
+            `;
+            playlistCount.textContent = 'Loading...';
+            
+            const res = await fetch(`./lib/playlist_cache.json?t=${Date.now()}`);
+            const data = await res.json();
+
+            const playlist = Object.values(data)[0] || [];
+
+            playlistContainer.innerHTML = '';
+            playlistContainer.className = 'row g-3 p-3';
+            
+            playlist.forEach((file, index) => {
+                const fileName = file.split('/').pop();
+                const extIndex = fileName.lastIndexOf('.');
+                const nameWithoutExt = extIndex !== -1 ? fileName.substring(0, extIndex) : fileName;
+                const fileExt = fileName.substring(extIndex + 1).toLowerCase();
+                const isVideo = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', '3gp', 'ogv', 'mpg', 'mpeg'].includes(fileExt);
+                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(fileExt);
+                const isAudio = ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'].includes(fileExt);
+    
+                let iconClass = 'fa-file';
+                let iconColor = '#757575';
+    
+                if (isAudio) {
+                    iconClass = 'fa-music';
+                    iconColor = '#9C27B0';
+                } else if (isVideo) {
+                    iconClass = 'fa-video';
+                    iconColor = '#2196F3';
+                } else if (isImage) {
+                    iconClass = 'fa-image';
+                    iconColor = '#4CAF50';
+                }
+                
+                const col = document.createElement('div');
+                col.className = 'col-6 col-md-4 col-lg-3';
+
+                const card = document.createElement('div');
+                card.className = 'card h-100 playlist-card video-thumb-card';
+                card.style.cursor = 'pointer';
+                card.style.transition = 'all 0.3s ease';
+                card.style.position = 'relative';
+                card.style.overflow = 'hidden';
+                card.setAttribute('data-path', file);
+                card.setAttribute('data-index', index);
+                card.setAttribute('data-ext', fileExt);
+                card.setAttribute('data-is-video', isVideo);
+                card.setAttribute('title', fileName);
+
+                let thumbnailHtml = '';
+
+                if (isVideo) {
+                    const thumbnailUrl =
+                        `?action=video_thumbnail&path=${encodeURIComponent(file)}&t=${Date.now()}`;
+
+                    thumbnailHtml = `
+                        <div class="video-thumb-container hover-video-parent"
+                             style="width: 100%; height: 150px; background: #000; position: relative;">
+                            <img class="video-thumb-img hover-thumb-img"
+                                 src="${thumbnailUrl}"
+                                 alt="${escapeHtml(fileName)}"
+                                 style="width: 100%; height: 100%; object-fit: cover; display: block;"
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\\'fas ${iconClass}\\' style=\\'font-size: 3rem; color: ${iconColor}; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);\\'></i>';">
+                            <div class="play-icon-overlay"
+                                 style="position: absolute; top: 50%; left: 50%;
+                                        transform: translate(-50%, -50%);
+                                        opacity: 0; transition: opacity 0.3s;">
+                                 <i class="fas fa-play-circle"
+                                     style="font-size: 3rem;
+                                         color: rgba(255,255,255,0.9);
+                                         filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));">
+                                </i>
+                            </div>
+
+                            <div class="duration-badge"
+                                 style="position: absolute; bottom: 5px; right: 5px;
+                                        background: rgba(0,0,0,0.7);
+                                        color: white; padding: 2px 6px;
+                                        border-radius: 4px; font-size: 0.8rem;">
+                                <i class="fas fa-clock"></i> --:--
+                            </div>
+                        </div>
+                    `;
+                } else if (isImage) {
+                    const imageUrl = `?preview=1&path=${encodeURIComponent(file)}`;
+                    thumbnailHtml = `
+                        <div class="image-thumb-container"
+                             style="width: 100%; height: 150px; background: #f0f0f0; position: relative; overflow: hidden;">
+                            <img class="image-thumb-img"
+                                 src="${imageUrl}"
+                                 alt="${escapeHtml(fileName)}"
+                                 style="width: 100%; height: 100%; object-fit: cover; display: block;"
+                                 loading="lazy"
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\\'fas ${iconClass}\\' style=\\'font-size: 3rem; color: ${iconColor}; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);\\'></i>';">
+                            <div class="play-icon-overlay"
+                                 style="position: absolute; top: 50%; left: 50%;
+                                        transform: translate(-50%, -50%);
+                                        opacity: 0; transition: opacity 0.3s;">
+                                <i class="fas fa-search-plus"
+                                   style="font-size: 2.5rem;
+                                          color: rgba(255,255,255,0.9);
+                                          filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));">
+                                </i>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    thumbnailHtml = `
+                        <div class="default-thumb"
+                             style="height: 150px; display: flex;
+                                    align-items: center; justify-content: center;
+                                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas ${iconClass} fa-3x"
+                               style="color: white;"></i>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="card-body p-0">
+                        ${thumbnailHtml}
+
+                        <div class="video-title-overlay"
+                             style="position: absolute; bottom: 0; left: 0; right: 0;
+                                    background: linear-gradient(transparent, rgba(0,0,0,0.8));
+                                    padding: 20px 10px 10px 10px;
+                                    opacity: 0; transition: opacity 0.3s;">
+
+                            <div class="text-white small text-truncate"
+                                 style="text-shadow: 1px 1px 2px rgba(0,0,0,0.5);"
+                                 data-translate-tooltip="${escapeHtml(nameWithoutExt)}">
+                                ${truncateFileName(nameWithoutExt, 20)}
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-1">
+                                <span class="badge bg-primary"
+                                      style="font-size: 0.7rem;">
+                                    ${fileExt.toUpperCase()}
+                                </span>
+
+                                <span class="badge bg-secondary video-duration-badge"
+                                      style="font-size: 0.7rem;">
+                                    --:--
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="position-absolute top-0 start-0 m-2"
+                             style="z-index: 2;">
+                            <span class="badge bg-secondary">
+                                ${index + 1}
+                            </span>
+                        </div>
+                    </div>
+                `;
+
+                if (isVideo) {
+                    let hoverVideo = null;
+                    let hoverTimer = null;
+
+                    card.addEventListener('mouseenter', () => {
+                        if (currentHoverCard && currentHoverCard !== card) {
+                            stopHoverVideo(currentHoverCard);
+                        }
+                        
+                        currentHoverCard = card;
+                        
+                        hoverTimer = setTimeout(() => {
+                            const thumbContainer = card.querySelector('.video-thumb-container');
+                            const thumbImg = card.querySelector('.hover-thumb-img');
+                            
+                            if (thumbContainer && thumbImg) {
+                                thumbImg.style.opacity = '0';
+                                
+                                hoverVideo = document.createElement('video');
+                                hoverVideo.src = `?preview=1&path=${encodeURIComponent(file)}`;
+                                hoverVideo.muted = true;
+                                hoverVideo.loop = true;
+                                hoverVideo.playsInline = true;
+                                hoverVideo.style.cssText = `
+                                    position: absolute;
+                                    top: 0;
+                                    left: 0;
+                                    width: 100%;
+                                    height: 100%;
+                                    object-fit: cover;
+                                    z-index: 10;
+                                `;
+                                
+                                const playPromise = hoverVideo.play();
+                                if (playPromise !== undefined) {
+                                    playPromise.catch(e => {
+                                        if (thumbImg) thumbImg.style.opacity = '1';
+                                    });
+                                }
+                                
+                                thumbContainer.appendChild(hoverVideo);
+                            }
+                        }, 500);
+                    });
+
+                    card.addEventListener('mouseleave', () => {
+                        if (hoverTimer) {
+                            clearTimeout(hoverTimer);
+                        }
+                        
+                        if (hoverVideo) {
+                            hoverVideo.pause();
+                            hoverVideo.currentTime = 0;
+                            hoverVideo.remove();
+                            hoverVideo = null;
+                        }
+                        
+                        const thumbImg = card.querySelector('.hover-thumb-img');
+                        if (thumbImg) {
+                            thumbImg.style.opacity = '1';
+                        }
+                        
+                        if (currentHoverCard === card) {
+                            currentHoverCard = null;
+                        }
+                    });
+                }
+
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-5px)';
+                    card.style.boxShadow = '0 10px 20px rgba(0,0,0,0.3)';
+
+                    const titleOverlay = card.querySelector('.video-title-overlay');
+                    const playIcon = card.querySelector('.play-icon-overlay');
+
+                    if (titleOverlay) titleOverlay.style.opacity = '1';
+                    if (playIcon) playIcon.style.opacity = '1';
+                });
+
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                    card.style.boxShadow = 'none';
+
+                    const titleOverlay = card.querySelector('.video-title-overlay');
+                    const playIcon = card.querySelector('.play-icon-overlay');
+
+                    if (titleOverlay) titleOverlay.style.opacity = '0';
+                    if (playIcon) playIcon.style.opacity = '0';
+                });
+
+                card.addEventListener('click', () => {
+                    currentMediaList = playlist;
+                    playMedia(file);
+                });
+
+                if (isVideo) {
+                    getVideoDuration(file)
+                        .then(duration => {
+                            const durationBadge = card.querySelector('.duration-badge');
+                            const durationSpan = card.querySelector('.video-duration-badge');
+
+                            if (durationBadge) {
+                                durationBadge.innerHTML =
+                                    `<i class="fas fa-clock"></i> ${duration}`;
+                            }
+
+                            if (durationSpan) {
+                                durationSpan.textContent = duration;
+                            }
+                        })
+                        .catch(() => {});
+                }
+
+                col.appendChild(card);
+                playlistContainer.appendChild(col);
+            });
+
+            playlistCount.textContent = playlist.length + ' ' + (translations['files'] || 'Files');
+            
+            setTimeout(highlightCurrentPlaylistCard, 200);
+
+        } catch (err) {
+            console.error('Failed to load playlist:', err);
+            
+            const playlistContainer = document.getElementById('playlistItems');
+            const playlistCount = document.getElementById('playlistCount');
+            
+            playlistContainer.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-exclamation-circle text-danger fa-3x mb-3"></i>
+                    <p class="text-danger">Failed to load playlist</p>
+                </div>
+            `;
+            playlistCount.textContent = '0 Files';
+        }
+    });
+
+    function stopHoverVideo(card) {
+        if (!card) return;
+        
+        const existingVideo = card.querySelector('video');
+        if (existingVideo) {
+            existingVideo.pause();
+            existingVideo.currentTime = 0;
+            existingVideo.remove();
+        }
+        
+        const thumbImg = card.querySelector('.hover-thumb-img');
+        if (thumbImg) {
+            thumbImg.style.opacity = '1';
+        }
+    }
+
+    const audioPlayer = document.getElementById('audioPlayer');
+    const videoPlayer = document.getElementById('videoPlayer');
+
+    if (audioPlayer) {
+        audioPlayer.addEventListener('ended', function() {
+            if (autoNextEnabled && currentMediaList.length > 0 && currentMedia && currentMedia.path) {
+                const currentIndex = currentMediaList.indexOf(currentMedia.path);
+                if (currentIndex !== -1 && currentIndex < currentMediaList.length - 1) {
+                    playMedia(currentMediaList[currentIndex + 1]);
+                }
+            }
+        });
+    }
+
+    if (videoPlayer) {
+        videoPlayer.addEventListener('ended', function() {
+            if (autoNextEnabled && currentMediaList.length > 0 && currentMedia && currentMedia.path) {
+                const currentIndex = currentMediaList.indexOf(currentMedia.path);
+                if (currentIndex !== -1 && currentIndex < currentMediaList.length - 1) {
+                    playMedia(currentMediaList[currentIndex + 1]);
+                }
+            }
+        });
+    }
+});
+
+function truncateFileName(name, maxLength = 15) {
+    if (name.length <= maxLength) return name;
+    const extIndex = name.lastIndexOf('.');
+    if (extIndex === -1) {
+        return name.substring(0, maxLength - 3) + '...';
+    }
+    const nameWithoutExt = name.substring(0, extIndex);
+    const ext = name.substring(extIndex);
+    if (nameWithoutExt.length <= maxLength - 3) {
+        return name;
+    }
+    return nameWithoutExt.substring(0, maxLength - 3 - ext.length) + '...' + ext;
+}
+
+function highlightCurrentPlaylistCard() {
+    const playlistCards = document.querySelectorAll('.playlist-card');
+    if (!playlistCards.length || !currentMedia || !currentMedia.path) return;
+    
+    playlistCards.forEach(card => {
+        card.classList.remove('playing');
+        
+        if (card.getAttribute('data-path') === currentMedia.path) {
+            card.classList.add('playing');
+            
+            setTimeout(() => {
+                card.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                    inline: 'nearest'
+                });
+            }, 100);
+        }
+    });
+}
+
+async function getVideoDuration(videoPath) {
+    return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.src = `?preview=1&path=${encodeURIComponent(videoPath)}`;
+        
+        video.onloadedmetadata = function() {
+            const duration = video.duration;
+            URL.revokeObjectURL(video.src);
+            
+            const hours = Math.floor(duration / 3600);
+            const minutes = Math.floor((duration % 3600) / 60);
+            const seconds = Math.floor(duration % 60);
+            
+            let durationStr;
+            if (hours > 0) {
+                durationStr = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            } else {
+                durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            resolve(durationStr);
+        };
+        
+        video.onerror = function() {
+            resolve('--:--');
+        };
+    });
+}
+
+document.addEventListener('play', function(e) {
+    if (e.target.id === 'audioPlayer' || e.target.id === 'videoPlayer') {
+        setTimeout(highlightCurrentPlaylistCard, 100);
+    }
+}, true);
+
+document.addEventListener('keydown', function(event) {
+    const target = event.target;
+    const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+    
+    if (isTyping) return;
+    
+    const isMonacoEditor = target.closest('.monaco-editor');
+    if (isMonacoEditor && (event.code === 'Space' || event.code === 'KeyF' || event.code === 'Escape')) {
+        return;
+    }
+    
+    switch(event.code) {
+        case 'Space':
+            event.preventDefault();
+            const audioPlayer = document.getElementById('audioPlayer');
+            const videoPlayer = document.getElementById('videoPlayer');
+            
+            if (audioPlayer && audioPlayer.style.display === 'block') {
+                if (audioPlayer.paused) audioPlayer.play();
+                else audioPlayer.pause();
+            } else if (videoPlayer && videoPlayer.style.display === 'block') {
+                if (videoPlayer.paused) videoPlayer.play();
+                else videoPlayer.pause();
+            }
+            break;
+            
+        case 'Escape':
+            const fileContextMenu = document.getElementById('fileContextMenu');
+            const contextMenuOverlay = document.getElementById('contextMenuOverlay');
+            
+            if (fileContextMenu && fileContextMenu.style.display === 'block') {
+                hideFileContextMenu();
+                event.preventDefault();
+            } else if (contextMenuOverlay && contextMenuOverlay.style.display === 'block') {
+                hideFileContextMenu();
+                event.preventDefault();
+            }
+            else if (document.getElementById('playerArea')?.classList.contains('active')) {
+                closePlayer();
+                event.preventDefault();
+            }
+            else if (document.getElementById('filePropertiesModal')?.classList.contains('show')) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('filePropertiesModal'));
+                if (modal) modal.hide();
+                event.preventDefault();
+            }
+            break;
+            
+        case 'KeyF':
+            event.preventDefault();
+            toggleFullscreen();
+            break;
+
+        case 'ArrowUp':
+            event.preventDefault();
+            const playlistBtn = document.querySelector('[data-bs-target="#playlistModal"]');
+            if (playlistBtn) {
+                playlistBtn.click();
+            }
+           break;
+            
+        case 'ArrowRight':
+            event.preventDefault();
+            playNextMedia();
+            break;
+            
+        case 'ArrowLeft':
+            event.preventDefault();
+            playPreviousMedia();
+            break;
+
+        case 'KeyA':
+            if (event.altKey) {
+                event.preventDefault();
+                toggleAutoNext();
+            }
+            break;                     
+            
+        case 'KeyF':
+            if (event.ctrlKey || event.metaKey) {
+                event.preventDefault();
+                const searchInput = document.getElementById('searchInput');
+                const searchModal = document.getElementById('searchModal');
+                
+                if (searchInput) {
+                    if (searchModal) {
+                        const modal = new bootstrap.Modal(searchModal);
+                        modal.show();
+                    }
+                    setTimeout(() => {
+                        searchInput.focus();
+                        searchInput.select();
+                    }, 100);
+                }
+            }
+            break;
+            
+        case 'KeyS':
+            if ((event.ctrlKey || event.metaKey) && activeEditorTab) {
+                event.preventDefault();
+                saveEditorContent(activeEditorTab);
+            }
+            break;
+            
+        case 'Enter':
+            if ((event.ctrlKey || event.metaKey) && document.getElementById('searchInput')?.value.trim()) {
+                event.preventDefault();
+                searchFiles();
+            }
+            break;
+            
+        case 'KeyF':
+            if ((event.ctrlKey || event.metaKey) && event.shiftKey && activeEditorTab) {
+                event.preventDefault();
+                const tab = editorTabs.find(t => t.id === activeEditorTab);
+                if (tab && tab.editorMode === 'advanced') {
+                    formatCode(activeEditorTab);
+                }
+            }
+            break;
+            
+        case 'F5':
+            event.preventDefault();
+            refreshFiles();
+            break;
+            
+        case 'Delete':
+            if (selectedFiles.size > 0) {
+                event.preventDefault();
+                deleteSelected();
+            }
+            break;
+            
+        case 'KeyE':
+            if (event.ctrlKey || event.metaKey) {
+                event.preventDefault();
+                toggleView();
+            }
+            break;
+            
+        case 'KeyE':
+            if ((event.ctrlKey || event.metaKey) && event.shiftKey) {
+                event.preventDefault();
+                toggleView('editor');
+            }
+            break;
+            
+        case 'KeyF':
+            if ((event.ctrlKey || event.metaKey) && event.shiftKey) {
+                event.preventDefault();
+                toggleView('files');
+            }
+            break;
+            
+        case 'KeyW':
+            if ((event.ctrlKey || event.metaKey) && activeEditorTab) {
+                event.preventDefault();
+                closeEditorTab(activeEditorTab);
+            }
+            break;
+            
+        case 'KeyW':
+            if ((event.ctrlKey || event.metaKey) && event.shiftKey && editorTabs.length > 0) {
+                event.preventDefault();
+                closeAllEditorTabs();
+            }
+            break;
+    }
 });
 </script>

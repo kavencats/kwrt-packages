@@ -709,6 +709,17 @@ $langData = [
         'clear_error'            => '清空错误',
         'full_scan_tooltip' => '全盘扫描获取的媒体文件会占用大量内存，不用请使用清理按键清空数据',
         'now_playing' => '正在播放',
+        'cpu_model'        => 'CPU型号',
+        'transcoding_play' => '正在转码播放: {format} 格式',
+        'tooltip_playlist' => '播放任意目錄媒體檔案，自動建立播放列表',
+        'frame_rate'               => '帧率:',
+        'audio_channels'           => '声道:',
+        'clean_thumbnails'         => '清理缩略图',
+        'clean_thumbnail_cache'    => '清理视频缩略图缓存',
+        'confirm_clean_thumbnails' => '确定要清理所有视频缩略图吗？这将释放磁盘空间。',
+        'thumbnails_cleaned'       => '缩略图缓存清理成功',
+        'clean_thumbnails_failed'  => '清理缩略图缓存失败',
+        'clean_thumbnails_error'   => '清理缩略图时出错',
         'file_summary' => '已选择 %d 个文件，合计 %s MB'
     ],
 
@@ -1419,6 +1430,17 @@ $langData = [
         'clear_error'            => '清空錯誤',
         'full_scan_tooltip' => '全盤掃描獲取的媒體文件會佔用大量內存，唔用請使用清理按鍵清空數據',
         'now_playing' => '正在播放',
+        'tooltip_playlist' => '播放任意目錄媒體檔案，自動建立播放列表',
+        'cpu_model'        => 'CPU型號',
+        'transcoding_play' => '正在轉碼播放: {format} 格式',
+        'frame_rate'               => '幀率:',
+        'audio_channels'           => '聲道:',
+        'clean_thumbnails'         => '清理縮略圖',
+        'clean_thumbnail_cache'    => '清理影片縮略圖快取',
+        'confirm_clean_thumbnails' => '確定要清理所有影片縮略圖嗎？這將釋放磁碟空間。',
+        'thumbnails_cleaned'       => '縮略圖快取清理成功',
+        'clean_thumbnails_failed'  => '清理縮略圖快取失敗',
+        'clean_thumbnails_error'   => '清理縮略圖時發生錯誤',
         'validateYaml' => '驗證 YAML 語法'
     ],
 
@@ -2127,7 +2149,18 @@ $langData = [
         'clear_failed'           => '지우기 실패',
         'clear_error'            => '지우기 오류',
         'full_scan_tooltip' => '전체 스캔으로 가져온 미디어 파일은 많은 메모리를 차지합니다. 사용하지 않을 경우 정리 버튼을 사용하여 데이터를 비우십시오.',
+        'tooltip_playlist'       => '모든 미디어 폴더에서 재생 목록 자동 생성',
         'now_playing' => '재생 중',
+        'cpu_model'        => 'CPU 모델',
+        'transcoding_play' => '{format} 형식으로 트랜스코딩하여 재생 중',
+        'frame_rate'               => '프레임 속도:',
+        'audio_channels'           => '오디오 채널:',
+        'clean_thumbnails'         => '썸네일 정리',
+        'clean_thumbnail_cache'    => '비디오 썸네일 캐시 정리',
+        'confirm_clean_thumbnails' => '모든 비디오 썸네일을 정리하시겠습니까? 디스크 공간이 확보됩니다.',
+        'thumbnails_cleaned'       => '썸네일 캐시 정리 완료',
+        'clean_thumbnails_failed'  => '썸네일 캐시 정리 실패',
+        'clean_thumbnails_error'   => '썸네일 정리 중 오류 발생',
         'validateYaml' => 'YAML 구문 검증'
     ],
 
@@ -2836,6 +2869,17 @@ $langData = [
         'clear_error'            => 'クリアエラー',
         'full_scan_tooltip' => '全スキャンで取得したメディアファイルは多くのメモリを占有します。使用しない場合は、クリアボタンを使用してデータを空にしてください。',
         'now_playing' => '再生中',
+        'cpu_model'        => 'CPUモデル',
+        'tooltip_playlist'       => '任意のメディアフォルダから再生リストを自動作成',
+        'transcoding_play' => '{format} 形式でトランスコード再生中',
+        'frame_rate'               => 'フレームレート:',
+        'audio_channels'           => 'オーディオチャンネル:',
+        'clean_thumbnails'         => 'サムネイルを削除',
+        'clean_thumbnail_cache'    => '動画サムネイルキャッシュを削除',
+        'confirm_clean_thumbnails' => 'すべての動画サムネイルを削除しますか？ディスク容量が解放されます。',
+        'thumbnails_cleaned'       => 'サムネイルキャッシュの削除に成功しました',
+        'clean_thumbnails_failed'  => 'サムネイルキャッシュの削除に失敗しました',
+        'clean_thumbnails_error'   => 'サムネイル削除中にエラーが発生しました',
         'validateYaml' => 'YAML構文を検証'
     ],
 
@@ -3542,6 +3586,17 @@ $langData = [
         'clear_error'            => 'Lỗi xóa',
         'full_scan_tooltip' => 'Tệp phương tiện được lấy từ quét toàn bộ ổ đĩa sẽ chiếm nhiều bộ nhớ. Nếu không sử dụng, vui lòng dùng nút dọn dẹp để xóa dữ liệu.',
         'now_playing' => 'Đang phát',
+        'cpu_model'        => 'Mẫu CPU',
+        'tooltip_playlist'       => 'Tạo danh sách phát thông minh từ bất kỳ thư mục media nào',
+        'frame_rate'               => 'Tốc độ khung hình:',
+        'audio_channels'           => 'Kênh âm thanh:',
+        'clean_thumbnails'         => 'Dọn dẹp hình thu nhỏ',
+        'clean_thumbnail_cache'    => 'Dọn dẹp bộ nhớ đệm hình thu nhỏ video',
+        'confirm_clean_thumbnails' => 'Bạn có chắc muốn xóa tất cả hình thu nhỏ video? Điều này sẽ giải phóng dung lượng đĩa.',
+        'thumbnails_cleaned'       => 'Đã dọn dẹp bộ nhớ đệm hình thu nhỏ thành công',
+        'clean_thumbnails_failed'  => 'Dọn dẹp bộ nhớ đệm hình thu nhỏ thất bại',
+        'clean_thumbnails_error'   => 'Có lỗi khi dọn dẹp hình thu nhỏ',
+        'transcoding_play' => 'Đang chuyển mã và phát định dạng {format}',
         'validateYaml' => 'Kiểm tra Cú pháp YAML'
     ],
 
@@ -4232,6 +4287,17 @@ $langData = [
         'clear_error'            => 'ข้อผิดพลาดการล้างแคช',
         'full_scan_tooltip' => 'ไฟล์มีเดียที่ได้จากการสแกนทั้งระบบจะใช้หน่วยความจำจำนวนมาก หากไม่ใช้งานกรุณาใช้ปุ่มล้างข้อมูลเพื่อลบข้อมูล',
         'now_playing' => 'กำลังเล่น',
+        'cpu_model'        => 'รุ่น CPU',
+        'tooltip_playlist'       => 'สร้างเพลย์ลิสต์อัตโนมัติจากโฟลเดอร์สื่อใดก็ได้',
+        'transcoding_play' => 'กำลังแปลงรหัสและเล่นไฟล์รูปแบบ {format}',
+        'frame_rate'               => 'อัตราเฟรม:',
+        'audio_channels'           => 'ช่องเสียง:',
+        'clean_thumbnails'         => 'ล้างภาพขนาดย่อ',
+        'clean_thumbnail_cache'    => 'ล้างแคชภาพขนาดย่อวิดีโอ',
+        'confirm_clean_thumbnails' => 'คุณแน่ใจหรือไม่ว่าต้องการล้างภาพขนาดย่อวิดีโอทั้งหมด? การดำเนินการนี้จะเพิ่มพื้นที่ดิสก์',
+        'thumbnails_cleaned'       => 'ล้างแคชภาพขนาดย่อสำเร็จ',
+        'clean_thumbnails_failed'  => 'ล้างแคชภาพขนาดย่อไม่สำเร็จ',
+        'clean_thumbnails_error'   => 'เกิดข้อผิดพลาดขณะล้างภาพขนาดย่อ',
         'validateYaml' => 'ตรวจสอบไวยากรณ์ YAML'
     ],
     'ru' => [
@@ -4923,6 +4989,17 @@ $langData = [
         'clear_error'            => 'Ошибка очистки',
         'full_scan_tooltip' => 'Медиафайлы, полученные при полном сканировании, занимают много памяти. Если не используете, пожалуйста, используйте кнопку очистки для удаления данных.',
         'now_playing' => 'Сейчас воспроизводится',
+        'cpu_model'        => 'Модель CPU',
+        'tooltip_playlist'       => 'Автоматически создать плейлист из любой папки с медиа',
+        'transcoding_play' => 'Выполняется перекодирование и воспроизведение формата {format}',
+        'frame_rate'               => 'Частота кадров:',
+        'audio_channels'           => 'Аудиоканалы:',
+        'clean_thumbnails'         => 'Очистить миниатюры',
+        'clean_thumbnail_cache'    => 'Очистить кэш миниатюр видео',
+        'confirm_clean_thumbnails' => 'Вы уверены, что хотите удалить все миниатюры видео? Это освободит место на диске.',
+        'thumbnails_cleaned'       => 'Кэш миниатюр успешно очищен',
+        'clean_thumbnails_failed'  => 'Не удалось очистить кэш миниатюр',
+        'clean_thumbnails_error'   => 'Ошибка при очистке миниатюр',
         'validateYaml' => 'Проверить синтаксис YAML'
     ],
     'ar' => [
@@ -5619,6 +5696,17 @@ $langData = [
         'clear_error'            => 'خطأ في المسح',
         'full_scan_tooltip' => 'ملفات الوسائط التي تم الحصول عليها من الفحص الكامل تستهلك الكثير من الذاكرة، إذا لم تستخدمها يرجى استخدام زر التنظيف لمسح البيانات',
         'now_playing' => 'قيد التشغيل الآن',
+        'tooltip_playlist'       => 'إنشاء قائمة تشغيل تلقائيًا من أي مجلد وسائط',
+        'cpu_model'        => 'طراز المعالج',
+        'transcoding_play' => 'جارٍ تحويل الترميز وتشغيل تنسيق {format}',
+        'frame_rate'               => 'معدل الإطارات:',
+        'audio_channels'           => 'قنوات الصوت:',
+        'clean_thumbnails'         => 'تنظيف الصور المصغرة',
+        'clean_thumbnail_cache'    => 'تنظيف ذاكرة التخزين المؤقت لصور الفيديو المصغرة',
+        'confirm_clean_thumbnails' => 'هل أنت متأكد من أنك تريد حذف جميع الصور المصغرة للفيديو؟ سيؤدي ذلك إلى تحرير مساحة على القرص.',
+        'thumbnails_cleaned'       => 'تم تنظيف ذاكرة الصور المصغرة بنجاح',
+        'clean_thumbnails_failed'  => 'فشل في تنظيف ذاكرة الصور المصغرة',
+        'clean_thumbnails_error'   => 'حدث خطأ أثناء تنظيف الصور المصغرة',
         'validateYaml' => 'التحقق من صحة بناء جملة YAML'
     ],
     'es' => [
@@ -6307,6 +6395,17 @@ $langData = [
         'clear_error'            => 'Error de limpieza',
         'full_scan_tooltip' => 'Los archivos multimedia obtenidos del escaneo completo ocupan mucha memoria. Si no los usa, utilice el botón de limpieza para vaciar los datos.',
         'now_playing' => 'Reproduciendo ahora',
+        'cpu_model'        => 'Modelo de CPU',
+        'tooltip_playlist'       => 'Crear lista de reproducción desde cualquier carpeta de medios de forma inteligente',
+        'transcoding_play' => 'Transcodificando y reproduciendo formato {format}',
+        'frame_rate'               => 'Velocidad de fotogramas:',
+        'audio_channels'           => 'Canales de audio:',
+        'clean_thumbnails'         => 'Limpiar miniaturas',
+        'clean_thumbnail_cache'    => 'Limpiar caché de miniaturas de video',
+        'confirm_clean_thumbnails' => '¿Está seguro de que desea eliminar todas las miniaturas de video? Esto liberará espacio en disco.',
+        'thumbnails_cleaned'       => 'Caché de miniaturas limpiada correctamente',
+        'clean_thumbnails_failed'  => 'Error al limpiar la caché de miniaturas',
+        'clean_thumbnails_error'   => 'Error al limpiar las miniaturas',
         'validateYaml' => 'Validar sintaxis YAML'
     ],
     'de' => [
@@ -6997,6 +7096,17 @@ $langData = [
         'clear_error'            => 'Löschfehler',
         'full_scan_tooltip' => 'Mediendateien, die durch einen vollständigen Scan erfasst werden, beanspruchen viel Speicher. Wenn Sie sie nicht verwenden, leeren Sie die Daten bitte mit der Bereinigungstaste.',
         'now_playing' => 'Wird gerade abgespielt',
+        'tooltip_playlist'       => 'Intelligente Wiedergabeliste aus beliebigen Medienordnern erstellen',
+        'cpu_model'        => 'CPU-Modell',
+        'transcoding_play' => 'Transkodierung und Wiedergabe im {format}-Format',
+        'frame_rate'               => 'Bildrate:',
+        'audio_channels'           => 'Audiokanäle:',
+        'clean_thumbnails'         => 'Vorschaubilder bereinigen',
+        'clean_thumbnail_cache'    => 'Video-Vorschaubild-Cache bereinigen',
+        'confirm_clean_thumbnails' => 'Möchten Sie wirklich alle Video-Vorschaubilder löschen? Dadurch wird Speicherplatz freigegeben.',
+        'thumbnails_cleaned'       => 'Vorschaubild-Cache erfolgreich bereinigt',
+        'clean_thumbnails_failed'  => 'Bereinigung des Vorschaubild-Caches fehlgeschlagen',
+        'clean_thumbnails_error'   => 'Fehler beim Bereinigen der Vorschaubilder',
         'validateYaml' => 'YAML-Syntax validieren'
     ],
 
@@ -7688,6 +7798,17 @@ $langData = [
         'clear_error'            => 'Erreur de vidage',
         'full_scan_tooltip' => 'Les fichiers multimédias obtenus par une analyse complète occupent beaucoup de mémoire. Si vous ne les utilisez pas, veuillez utiliser le bouton de nettoyage pour vider les données.',
         'now_playing' => 'Lecture en cours',
+        'tooltip_playlist'       => 'Créer automatiquement une playlist à partir de n’importe quel dossier média',
+        'cpu_model'        => 'Modèle du CPU',
+        'transcoding_play' => 'Transcodage et lecture au format {format}',
+        'frame_rate'               => 'Fréquence d’images:',
+        'audio_channels'           => 'Canaux audio:',
+        'clean_thumbnails'         => 'Nettoyer les miniatures',
+        'clean_thumbnail_cache'    => 'Nettoyer le cache des miniatures vidéo',
+        'confirm_clean_thumbnails' => 'Êtes-vous sûr de vouloir supprimer toutes les miniatures vidéo ? Cela libérera de l’espace disque.',
+        'thumbnails_cleaned'       => 'Cache des miniatures nettoyé avec succès',
+        'clean_thumbnails_failed'  => 'Échec du nettoyage du cache des miniatures',
+        'clean_thumbnails_error'   => 'Erreur lors du nettoyage des miniatures',
         'validateYaml' => 'Valider la syntaxe YAML'
     ],
     'en' => [
@@ -8390,6 +8511,17 @@ $langData = [
         'clear_error'            => 'Error clearing cache',
         'full_scan_tooltip' => 'Media files obtained from full scan will take up a lot of memory. If not in use, please use the clear button to empty the data.',
         'now_playing' => 'Now Playing',
+        'cpu_model'        => 'CPU Model',
+        'tooltip_playlist'       => 'Intelligently create playlist from any media folder',
+        'transcoding_play' => 'Transcoding and playing: {format} format',
+        'frame_rate'               => 'Frame Rate:',
+        'audio_channels'           => 'Channels:',
+        'clean_thumbnails'         => 'Clean Thumbnails',
+        'clean_thumbnail_cache'    => 'Clean Video Thumbnail Cache',
+        'confirm_clean_thumbnails' => 'Are you sure you want to clean all video thumbnails? This will free up disk space.',
+        'thumbnails_cleaned'       => 'Thumbnail cache cleaned successfully',
+        'clean_thumbnails_failed'  => 'Failed to clean thumbnail cache',
+        'clean_thumbnails_error'   => 'Error occurred while cleaning thumbnails',
         'validateYaml' => 'Validate YAML Syntax'
     ],
     'bn' => [
@@ -9080,6 +9212,17 @@ $langData = [
         'clear_error'            => 'সাফ করতে ত্রুটি',
         'full_scan_tooltip' => 'সম্পূর্ণ স্ক্যান থেকে প্রাপ্ত মিডিয়া ফাইলগুলি প্রচুর মেমরি গ্রহণ করবে। ব্যবহার না করলে ডেটা খালি করতে ক্লিয়ার বাটন ব্যবহার করুন।',
         'now_playing' => 'এখন চলছে',
+        'tooltip_playlist'       => 'যেকোনো মিডিয়া ফোল্ডার থেকে স্বয়ংক্রিয়ভাবে প্লেলিস্ট তৈরি করুন',
+        'cpu_model'        => 'CPU মডেল',
+        'transcoding_play' => '{format} ফরম্যাটে ট্রান্সকোড করে প্লে করা হচ্ছে',
+        'frame_rate'               => 'ফ্রেম রেট:',
+        'audio_channels'           => 'অডিও চ্যানেল:',
+        'clean_thumbnails'         => 'থাম্বনেইল পরিষ্কার করুন',
+        'clean_thumbnail_cache'    => 'ভিডিও থাম্বনেইল ক্যাশ পরিষ্কার করুন',
+        'confirm_clean_thumbnails' => 'আপনি কি নিশ্চিত যে সব ভিডিও থাম্বনেইল মুছতে চান? এতে ডিস্ক স্পেস খালি হবে।',
+        'thumbnails_cleaned'       => 'থাম্বনেইল ক্যাশ সফলভাবে পরিষ্কার হয়েছে',
+        'clean_thumbnails_failed'  => 'থাম্বনেইল ক্যাশ পরিষ্কার করতে ব্যর্থ',
+        'clean_thumbnails_error'   => 'থাম্বনেইল পরিষ্কার করার সময় ত্রুটি ঘটেছে',
         'validateYaml' => 'YAML সিনট্যাক্স যাচাই করুন'
     ]
 ];
@@ -9489,51 +9632,42 @@ function speakMessage(message) {
             return;
         }
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', './lib/language.txt', true);
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4 && xhr.status === 200) {
-                const lang = xhr.responseText.trim();
-                
-                const voiceKey = getVoicePreferenceKey(lang);
-                const savedVoiceIndex = localStorage.getItem(voiceKey);
-                
-                let selectedVoice = null;
-                
-                if (savedVoiceIndex !== null) {
-                    const targetLangs = langToVoiceLangMap[lang] || [languageStandardMap[lang] || lang];
-                    const filteredVoices = voices.filter(voice => 
-                        targetLangs.some(targetLang => voice.lang.startsWith(targetLang))
-                    );
-                    selectedVoice = filteredVoices[savedVoiceIndex];
-                }
-                
-                if (!selectedVoice) {
-                    const chineseVoiceKey = getChineseVoiceKey();
-                    const savedChineseIndex = localStorage.getItem(chineseVoiceKey);
-                    const chineseVoices = voices.filter(voice => 
-                        ['zh-CN', 'zh-HK', 'zh-TW'].some(lang => voice.lang.startsWith(lang))
-                    );
-                    
-                    if (savedChineseIndex !== null && chineseVoices[savedChineseIndex]) {
-                        selectedVoice = chineseVoices[savedChineseIndex];
-                    } else if (chineseVoices.length > 0) {
-                        selectedVoice = chineseVoices[0];
-                    }
-                }
-                
-                if (!selectedVoice) {
-                    selectedVoice = voices.find(voice => voice.lang.includes('zh')) || voices[0];
-                }
-                
-                if (selectedVoice) {
-                    const utterance = new SpeechSynthesisUtterance(message);
-                    utterance.voice = selectedVoice;
-                    speechSynthesis.speak(utterance);
-                }
+        const voiceKey = getVoicePreferenceKey(currentLang);
+        const savedVoiceIndex = localStorage.getItem(voiceKey);
+        
+        let selectedVoice = null;
+        
+        if (savedVoiceIndex !== null) {
+            const targetLangs = langToVoiceLangMap[currentLang] || [languageStandardMap[currentLang] || currentLang];
+            const filteredVoices = voices.filter(voice => 
+                targetLangs.some(targetLang => voice.lang.startsWith(targetLang))
+            );
+            selectedVoice = filteredVoices[savedVoiceIndex];
+        }
+        
+        if (!selectedVoice) {
+            const chineseVoiceKey = getChineseVoiceKey();
+            const savedChineseIndex = localStorage.getItem(chineseVoiceKey);
+            const chineseVoices = voices.filter(voice => 
+                ['zh-CN', 'zh-HK', 'zh-TW'].some(lang => voice.lang.startsWith(lang))
+            );
+            
+            if (savedChineseIndex !== null && chineseVoices[savedChineseIndex]) {
+                selectedVoice = chineseVoices[savedChineseIndex];
+            } else if (chineseVoices.length > 0) {
+                selectedVoice = chineseVoices[0];
             }
-        };
-        xhr.send();
+        }
+        
+        if (!selectedVoice) {
+            selectedVoice = voices[0];
+        }
+        
+        if (selectedVoice) {
+            const utterance = new SpeechSynthesisUtterance(message);
+            utterance.voice = selectedVoice;
+            speechSynthesis.speak(utterance);
+        }
     }
 
     speakWithVoices();
@@ -10778,8 +10912,6 @@ function updateDateTime() {
     try {
         const now = new Date();
         const lang = currentLang; 
-        const translations = langData[lang] || langData['en']; 
-
         const hours = now.getHours();
         const minutes = now.getMinutes();
         const ancientTime = getAncientTime(now, translations);
