@@ -24,14 +24,13 @@
 
 --- a/luci-app-nekobox/root/etc/uci-defaults/99_neko
 +++ b/luci-app-nekobox/root/etc/uci-defaults/99_neko
-@@ -9,11 +9,36 @@ tmp_dir="/tmp"
+@@ -9,11 +9,35 @@ tmp_dir="/tmp"
  echo "[ `date +%T` ] - Checking Files..."
  
  files_check() {
 +    if [ -n "$(command -v nginx)" ];then
 +cat << 'EOF' > /etc/nginx/conf.d/nekobox.locations
-+location /nekobox {
-+    alias /www/nekobox;
++location /nekobox/ {
 +    index index.php index.html index.htm;
 +
 +    location ~ \.php$ {
