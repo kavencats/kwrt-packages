@@ -63,7 +63,7 @@
 
 --- a/luci-theme-spectra/root/etc/uci-defaults/30_luci-theme-spectra
 +++ b/luci-theme-spectra/root/etc/uci-defaults/30_luci-theme-spectra
-@@ -8,6 +8,33 @@ commit luci
+@@ -8,6 +8,34 @@ commit luci
  EOF
  
      rm -rf /tmp/luci-*
@@ -71,7 +71,8 @@
 +    if [ -n "$(command -v nginx)" ];then
 +        if [ ! -f /etc/nginx/conf.d/spectra.locations ]; then
 +cat << 'EOF' > /etc/nginx/conf.d/spectra.locations
-+location /luci-static/spectra/ {
++location /spectra/ {
++    index index.php index.html index.htm;
 +    location ~ \.php$ {
 +        if (!-f $request_filename) {
 +            return 404;
