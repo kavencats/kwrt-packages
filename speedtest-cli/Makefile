@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=speedtest-cli
 PKG_VERSION:=1.2.0
-PKG_RELEASE:=6
+PKG_RELEASE:=8
 
 ifeq ($(ARCH),aarch64)
   PKG_HASH:=skip

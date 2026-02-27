@@ -720,6 +720,69 @@ $langData = [
         'thumbnails_cleaned'       => '缩略图缓存清理成功',
         'clean_thumbnails_failed'  => '清理缩略图缓存失败',
         'clean_thumbnails_error'   => '清理缩略图时出错',
+        'generate_qrcode'   => '生成二维码',
+        'file_qrcode'       => '文件二维码',
+        'scan'                    => '扫描',
+        'cached'                  => '已缓存',
+        'full_media_scan'         => '全媒体扫描',
+        'confirm_clear_cache_type'=> '清除 {type} 缓存？',
+        'cache_type_cleared'      => '{type} 缓存已清除',
+        'clear_type_failed'       => '清除 {type} 缓存失败',
+        'scan_type_complete'      => '{type} 扫描完成：找到 {count} 个文件',
+        'scan_type_failed'        => '{type} 扫描失败',
+        'clear_failed'            => '清除失败',
+        'scanning'                => '扫描中...',
+        'clearing'                => '清除中...',
+        'drag_to_resize_sidebar' => '拖动调整侧边栏宽度',
+        'drag_to_resize_player'  => '拖动调整播放器宽度',
+        'fit_mode_toggle'      => '切换显示模式',
+        'image_formats'        => '图片格式',
+        'uploading' => '上传中...',
+        'upload_progress' => '上传进度',
+        'upload_chunk_progress' => '分片 {current}/{total}',
+        'upload_complete' => '上传完成',
+        'settings_saved' => '设置已保存',
+        'settings_save_error' => '设置保存失败',
+        'force_delete' => '跳过回收站，直接永久删除',
+        'recycle_bin' => '回收站',
+        'recycle_bin_enabled' => '启用回收站',
+        'recycle_bin_disabled' => '停用回收站',
+        'empty_recycle_bin' => '清空回收站',
+        'restore' => '还原',
+        'restore_selected' => '还原选中',
+        'delete_permanently' => '永久删除',
+        'recycle_bin_empty' => '回收站是空的',
+        'auto_clean_days' => '自动清理天数',
+        'settings' => '设置',
+        'save_settings' => '保存设置',
+        'settings_save_failed' => '保存设置失败',
+        'settings_save_error' => '保存设置出错',
+        'confirm_empty_recycle' => '确定要清空回收站吗？此操作不可撤销！',
+        'confirm_delete_permanent' => '确定要永久删除选中的 {count} 个项目吗？',
+        'restore_success' => '成功还原 {count} 个项目',
+        'restore_failed' => '还原失败 {count} 个项目',
+        'delete_success' => '成功删除 {count} 个项目',
+        'delete_failed' => '删除失败 {count} 个项目',
+        'recycle_bin_cleared' => '回收站已清空',
+        'permanently_deleted' => '已永久删除 {count} 个项目',
+        'moved_to_recycle' => '已将 {count} 个项目移到回收站',
+        'selected_items_count' => '已选中 {count} 个项目',
+        'confirm_delete_selected' => '确定要删除 {count} 个项目吗？',
+        'confirm_set_wallpaper'  => '将 "{filename}" 设为壁纸？',
+        'wallpaper_set_success'  => '壁纸设置成功',
+        'wallpaper_set_error'    => '壁纸设置失败',
+        'confirm_clear_wallpaper'=> '恢复默认主题？',
+        'theme_restored'         => '已恢复默认主题',
+        'set_as_wallpaper'       => '设为壁纸',
+        'restore_default_theme'  => '恢复默认主题',
+        'pause'                => '暂停',
+        'previous_track'       => '上一首',
+        'next_track'           => '下一首',
+        'play_pause'           => '播放/暂停',
+        'aspect_ratio_tooltip' => '画面比例',
+        'aspect_ratio'         => '比例',
+        'mini_player'          => '小窗播放',
+        'playback_speed' => '播放速度',
         'file_summary' => '已选择 %d 个文件，合计 %s MB'
     ],
 
@@ -1441,6 +1504,68 @@ $langData = [
         'thumbnails_cleaned'       => '縮略圖快取清理成功',
         'clean_thumbnails_failed'  => '清理縮略圖快取失敗',
         'clean_thumbnails_error'   => '清理縮略圖時發生錯誤',
+        'generate_qrcode'   => '生成二維碼',
+        'file_qrcode'       => '文件二維碼',
+        'scan'                    => '掃描',
+        'cached'                  => '已快取',
+        'full_media_scan'         => '全媒體掃描',
+        'confirm_clear_cache_type'=> '清除 {type} 快取？',
+        'cache_type_cleared'      => '{type} 快取已清除',
+        'clear_type_failed'       => '清除 {type} 快取失敗',
+        'scan_type_complete'      => '{type} 掃描完成：找到 {count} 個檔案',
+        'scan_type_failed'        => '{type} 掃描失敗',
+        'clear_failed'            => '清除失敗',
+        'scanning'                => '掃描中...',
+        'clearing'                => '清除中...',
+        'fit_mode_toggle'      => '切換顯示模式',
+        'image_formats'        => '圖片格式',
+        'drag_to_resize_sidebar' => '拖動調整側邊欄寬度',
+        'drag_to_resize_player'  => '拖動調整播放器寬度',
+        'uploading' => '上傳中...',
+        'upload_progress' => '上傳進度',
+        'upload_chunk_progress' => '分片 {current}/{total}',
+        'upload_complete' => '上傳完成',
+        'settings_saved'          => '設定已儲存',
+        'settings_save_error'     => '設定儲存失敗',
+        'force_delete'            => '跳過回收桶，直接永久刪除',
+        'recycle_bin'            => '回收桶',
+        'recycle_bin_enabled'    => '啟用回收桶',
+        'recycle_bin_disabled'   => '停用回收桶',
+        'empty_recycle_bin'      => '清空回收桶',
+        'restore'                => '還原',
+        'restore_selected'       => '還原選中',
+        'delete_permanently'     => '永久刪除',
+        'recycle_bin_empty'      => '回收桶是空的',
+        'auto_clean_days'        => '自動清理天數',
+        'settings'               => '設定',
+        'save_settings'          => '保存設定',
+        'settings_save_failed'   => '保存設定失敗',
+        'settings_save_error'    => '保存設定出錯',
+        'confirm_empty_recycle'  => '確定要清空回收桶嗎？此操作不可撤銷！',
+        'confirm_delete_permanent' => '確定要永久刪除選中的 {count} 個項目嗎？',
+        'restore_success'        => '成功還原 {count} 個項目',
+        'restore_failed'         => '還原失敗 {count} 個項目',
+        'delete_success'         => '成功刪除 {count} 個項目',
+        'delete_failed'          => '刪除失敗 {count} 個項目',
+        'recycle_bin_cleared'    => '回收桶已清空',
+        'permanently_deleted'    => '已永久刪除 {count} 個項目',
+        'moved_to_recycle'       => '已將 {count} 個項目移到回收桶',
+        'selected_items_count' => '已选中 {count} 个项目',
+        'confirm_delete_selected'    => '確定要刪除 {count} 個項目嗎？',
+        'confirm_set_wallpaper'  => '將 "{filename}" 設為桌布？',
+        'wallpaper_set_success'  => '桌布設置成功',
+        'wallpaper_set_error'    => '桌布設置失敗',
+        'theme_restored'         => '已恢復預設主題',
+        'set_as_wallpaper'       => '設為桌布',
+        'restore_default_theme'  => '恢復預設主題',
+        'pause' => '暫停',
+        'previous_track'         => '上一首',
+        'next_track'             => '下一首',
+        'play_pause'             => '播放/暫停',
+        'aspect_ratio_tooltip'   => '畫面比例',
+        'aspect_ratio'           => '比例',
+        'mini_player'            => '小窗播放',
+        'playback_speed' => '播放速度',
         'validateYaml' => '驗證 YAML 語法'
     ],
 
@@ -2161,6 +2286,68 @@ $langData = [
         'thumbnails_cleaned'       => '썸네일 캐시 정리 완료',
         'clean_thumbnails_failed'  => '썸네일 캐시 정리 실패',
         'clean_thumbnails_error'   => '썸네일 정리 중 오류 발생',
+        'generate_qrcode'   => 'QR 코드 생성',
+        'file_qrcode'       => '파일 QR 코드',
+        'scan'                    => '스캔',
+        'cached'                  => '캐시됨',
+        'full_media_scan'         => '전체 미디어 스캔',
+        'confirm_clear_cache_type'=> '{type} 캐시를 삭제하시겠습니까?',
+        'cache_type_cleared'      => '{type} 캐시가 삭제되었습니다',
+        'clear_type_failed'       => '{type} 캐시 삭제 실패',
+        'scan_type_complete'      => '{type} 스캔 완료: {count}개 파일 발견',
+        'scan_type_failed'        => '{type} 스캔 실패',
+        'clear_failed'            => '삭제 실패',
+        'scanning'                => '스캔 중...',
+        'clearing'                => '삭제 중...',
+        'drag_to_resize_sidebar' => '사이드바 크기 조절',
+        'drag_to_resize_player'  => '플레이어 크기 조절',
+        'fit_mode_toggle'      => '표시 모드 전환',
+        'image_formats'        => '이미지 형식',
+        'uploading' => '업로드 중...',
+        'upload_progress' => '업로드 진행률',
+        'upload_chunk_progress' => '청크 {current}/{total}',
+        'upload_complete' => '업로드 완료',
+        'settings_saved' => '설정이 저장되었습니다',
+        'settings_save_error' => '설정 저장 실패',
+        'force_delete' => '휴지통 건너뛰고 영구 삭제',
+        'recycle_bin' => '휴지통',
+        'recycle_bin_enabled' => '휴지통 사용',
+        'recycle_bin_disabled' => '휴지통 사용 안함',
+        'empty_recycle_bin' => '휴지통 비우기',
+        'restore' => '복원',
+        'restore_selected' => '선택 항목 복원',
+        'delete_permanently' => '영구 삭제',
+        'recycle_bin_empty' => '휴지통이 비어 있습니다',
+        'auto_clean_days' => '자동 정리 기간(일)',
+        'settings' => '설정',
+        'save_settings' => '설정 저장',
+        'settings_save_failed' => '설정 저장 실패',
+        'settings_save_error' => '설정 저장 오류',
+        'confirm_empty_recycle' => '휴지통을 비우시겠습니까? 이 작업은 되돌릴 수 없습니다!',
+        'confirm_delete_permanent' => '선택한 {count}개 항목을 영구 삭제하시겠습니까?',
+        'restore_success' => '{count}개 항목이 복원되었습니다',
+        'restore_failed' => '{count}개 항목 복원 실패',
+        'delete_success' => '{count}개 항목이 삭제되었습니다',
+        'delete_failed' => '{count}개 항목 삭제 실패',
+        'recycle_bin_cleared' => '휴지통이 비워졌습니다',
+        'permanently_deleted' => '{count}개 항목이 영구 삭제되었습니다',
+        'moved_to_recycle' => '{count}개 항목이 휴지통으로 이동되었습니다',
+        'selected_items_count' => '{count}개 항목 선택됨',
+        'confirm_delete_selected' => '{count}개 항목을 삭제하시겠습니까?',
+        'confirm_set_wallpaper'  => '"{filename}"을(를) 배경화면으로 설정하시겠습니까?',
+        'wallpaper_set_success'  => '배경화면 설정 성공',
+        'wallpaper_set_error'    => '배경화면 설정 실패',
+        'theme_restored'         => '기본 테마로 복원되었습니다',
+        'set_as_wallpaper'       => '배경화면으로 설정',
+        'restore_default_theme'  => '기본 테마 복원',
+        'pause'                => '일시 정지',
+        'previous_track'       => '이전 곡',
+        'next_track'           => '다음 곡',
+        'play_pause'           => '재생/일시 정지',
+        'aspect_ratio_tooltip' => '화면 비율',
+        'aspect_ratio'         => '비율',
+        'mini_player'          => '미니 플레이어',
+        'playback_speed' => '재생 속도',
         'validateYaml' => 'YAML 구문 검증'
     ],
 
@@ -2880,6 +3067,68 @@ $langData = [
         'thumbnails_cleaned'       => 'サムネイルキャッシュの削除に成功しました',
         'clean_thumbnails_failed'  => 'サムネイルキャッシュの削除に失敗しました',
         'clean_thumbnails_error'   => 'サムネイル削除中にエラーが発生しました',
+        'generate_qrcode'   => 'QRコードを生成',
+        'file_qrcode'       => 'ファイルQRコード',
+        'scan'                    => 'スキャン',
+        'cached'                  => 'キャッシュ済み',
+        'full_media_scan'         => '全メディアスキャン',
+        'confirm_clear_cache_type'=> '{type} キャッシュを削除しますか？',
+        'cache_type_cleared'      => '{type} キャッシュを削除しました',
+        'clear_type_failed'       => '{type} キャッシュの削除に失敗しました',
+        'scan_type_complete'      => '{type} スキャン完了：{count} 件のファイルを検出',
+        'scan_type_failed'        => '{type} スキャン失敗',
+        'clear_failed'            => '削除失敗',
+        'scanning'                => 'スキャン中...',
+        'clearing'                => '削除中...',
+        'fit_mode_toggle'      => '表示モードを切り替え',
+        'image_formats'        => '画像形式',
+        'drag_to_resize_sidebar' => 'サイドバーの幅をドラッグして調整',
+        'drag_to_resize_player'  => 'プレーヤーの幅をドラッグして調整',
+        'uploading' => 'アップロード中...',
+        'upload_progress' => 'アップロード進捗',
+        'upload_chunk_progress' => 'チャンク {current}/{total}',
+        'upload_complete' => 'アップロード完了',
+        'settings_saved' => '設定を保存しました',
+        'settings_save_error' => '設定の保存に失敗しました',
+        'force_delete' => 'ゴミ箱をスキップして完全に削除',
+        'recycle_bin' => 'ゴミ箱',
+        'recycle_bin_enabled' => 'ゴミ箱を有効にする',
+        'recycle_bin_disabled' => 'ゴミ箱を無効にする',
+        'empty_recycle_bin' => 'ゴミ箱を空にする',
+        'restore' => '復元',
+        'restore_selected' => '選択項目を復元',
+        'delete_permanently' => '完全に削除',
+        'recycle_bin_empty' => 'ゴミ箱は空です',
+        'auto_clean_days' => '自動削除日数',
+        'settings' => '設定',
+        'save_settings' => '設定を保存',
+        'settings_save_failed' => '設定の保存に失敗しました',
+        'settings_save_error' => '設定の保存エラー',
+        'confirm_empty_recycle' => 'ゴミ箱を空にしてもよろしいですか？この操作は元に戻せません！',
+        'confirm_delete_permanent' => '選択した {count} 個の項目を完全に削除してもよろしいですか？',
+        'restore_success' => '{count} 個の項目を復元しました',
+        'restore_failed' => '{count} 個の項目の復元に失敗しました',
+        'delete_success' => '{count} 個の項目を削除しました',
+        'delete_failed' => '{count} 個の項目の削除に失敗しました',
+        'recycle_bin_cleared' => 'ゴミ箱を空にしました',
+        'permanently_deleted' => '{count} 個の項目を完全に削除しました',
+        'moved_to_recycle' => '{count} 個の項目をゴミ箱に移動しました',
+        'selected_items_count' => '{count} 個の項目を選択中',
+        'confirm_delete_selected' => '{count} 個の項目を削除してもよろしいですか？',
+        'confirm_set_wallpaper'  => '"{filename}" を壁紙に設定しますか？',
+        'wallpaper_set_success'  => '壁紙の設定に成功しました',
+        'wallpaper_set_error'    => '壁紙の設定に失敗しました',
+        'theme_restored'         => 'デフォルトテーマに復元しました',
+        'set_as_wallpaper'       => '壁紙に設定',
+        'restore_default_theme'  => 'デフォルトテーマを復元',
+        'pause'                => '一時停止',
+        'previous_track'       => '前の曲',
+        'next_track'           => '次の曲',
+        'play_pause'           => '再生/一時停止',
+        'aspect_ratio_tooltip' => '画面比率',
+        'aspect_ratio'         => '比率',
+        'mini_player'          => 'ミニプレーヤー',
+        'playback_speed' => '再生速度',
         'validateYaml' => 'YAML構文を検証'
     ],
 
@@ -3597,6 +3846,68 @@ $langData = [
         'clean_thumbnails_failed'  => 'Dọn dẹp bộ nhớ đệm hình thu nhỏ thất bại',
         'clean_thumbnails_error'   => 'Có lỗi khi dọn dẹp hình thu nhỏ',
         'transcoding_play' => 'Đang chuyển mã và phát định dạng {format}',
+        'generate_qrcode'   => 'Tạo mã QR',
+        'file_qrcode'       => 'Mã QR tệp',
+        'scan'                    => 'Quét',
+        'cached'                  => 'Đã lưu cache',
+        'full_media_scan'         => 'Quét toàn bộ media',
+        'confirm_clear_cache_type'=> 'Xóa bộ nhớ đệm {type}?',
+        'cache_type_cleared'      => 'Đã xóa bộ nhớ đệm {type}',
+        'clear_type_failed'       => 'Xóa bộ nhớ đệm {type} thất bại',
+        'scan_type_complete'      => 'Quét {type} hoàn tất: tìm thấy {count} tệp',
+        'scan_type_failed'        => 'Quét {type} thất bại',
+        'clear_failed'            => 'Xóa thất bại',
+        'scanning'                => 'Đang quét...',
+        'clearing'                => 'Đang xóa...',
+        'drag_to_resize_sidebar' => 'Kéo để thay đổi kích thước thanh bên',
+        'drag_to_resize_player'  => 'Kéo để thay đổi kích thước trình phát',
+        'fit_mode_toggle'      => 'Chuyển đổi chế độ hiển thị',
+        'image_formats'        => 'Định dạng hình ảnh',
+        'uploading' => 'Đang tải lên...',
+        'upload_progress' => 'Tiến trình tải lên',
+        'upload_chunk_progress' => 'Phân đoạn {current}/{total}',
+        'upload_complete' => 'Tải lên hoàn tất',
+        'settings_saved' => 'Đã lưu cài đặt',
+        'settings_save_error' => 'Lưu cài đặt thất bại',
+        'force_delete' => 'Bỏ qua thùng rác, xóa vĩnh viễn ngay',
+        'recycle_bin' => 'Thùng rác',
+        'recycle_bin_enabled' => 'Bật thùng rác',
+        'recycle_bin_disabled' => 'Tắt thùng rác',
+        'empty_recycle_bin' => 'Dọn sạch thùng rác',
+        'restore' => 'Khôi phục',
+        'restore_selected' => 'Khôi phục đã chọn',
+        'delete_permanently' => 'Xóa vĩnh viễn',
+        'recycle_bin_empty' => 'Thùng rác trống',
+        'auto_clean_days' => 'Số ngày tự động dọn',
+        'settings' => 'Cài đặt',
+        'save_settings' => 'Lưu cài đặt',
+        'settings_save_failed' => 'Lưu cài đặt thất bại',
+        'settings_save_error' => 'Lỗi lưu cài đặt',
+        'confirm_empty_recycle' => 'Bạn có chắc chắn muốn dọn sạch thùng rác? Hành động này không thể hoàn tác!',
+        'confirm_delete_permanent' => 'Bạn có chắc chắn muốn xóa vĩnh viễn {count} mục đã chọn?',
+        'restore_success' => 'Đã khôi phục thành công {count} mục',
+        'restore_failed' => 'Khôi phục thất bại {count} mục',
+        'delete_success' => 'Đã xóa thành công {count} mục',
+        'delete_failed' => 'Xóa thất bại {count} mục',
+        'recycle_bin_cleared' => 'Đã dọn sạch thùng rác',
+        'permanently_deleted' => 'Đã xóa vĩnh viễn {count} mục',
+        'moved_to_recycle' => 'Đã di chuyển {count} mục vào thùng rác',
+        'selected_items_count' => 'Đã chọn {count} mục',
+        'confirm_delete_selected' => 'Bạn có chắc chắn muốn xóa {count} mục?',
+        'confirm_set_wallpaper'  => 'Đặt "{filename}" làm hình nền?',
+        'wallpaper_set_success'  => 'Đặt hình nền thành công',
+        'wallpaper_set_error'    => 'Đặt hình nền thất bại',
+        'theme_restored'         => 'Đã khôi phục chủ đề mặc định',
+        'set_as_wallpaper'       => 'Đặt làm hình nền',
+        'restore_default_theme'  => 'Khôi phục chủ đề mặc định',
+        'pause'                => 'Tạm dừng',
+        'previous_track'       => 'Bài trước',
+        'next_track'           => 'Bài tiếp theo',
+        'play_pause'           => 'Phát/Tạm dừng',
+        'aspect_ratio_tooltip' => 'Tỷ lệ khung hình',
+        'aspect_ratio'         => 'Tỷ lệ',
+        'mini_player'          => 'Trình phát mini',
+        'playback_speed' => 'Tốc độ phát lại',
         'validateYaml' => 'Kiểm tra Cú pháp YAML'
     ],
 
@@ -4298,6 +4609,68 @@ $langData = [
         'thumbnails_cleaned'       => 'ล้างแคชภาพขนาดย่อสำเร็จ',
         'clean_thumbnails_failed'  => 'ล้างแคชภาพขนาดย่อไม่สำเร็จ',
         'clean_thumbnails_error'   => 'เกิดข้อผิดพลาดขณะล้างภาพขนาดย่อ',
+        'generate_qrcode'   => 'สร้างคิวอาร์โค้ด',
+        'file_qrcode'       => 'คิวอาร์โค้ดไฟล์',
+        'scan'                    => 'สแกน',
+        'cached'                  => 'แคชแล้ว',
+        'full_media_scan'         => 'สแกนสื่อทั้งหมด',
+        'confirm_clear_cache_type'=> 'ล้างแคช {type} หรือไม่?',
+        'cache_type_cleared'      => 'ล้างแคช {type} แล้ว',
+        'clear_type_failed'       => 'ล้างแคช {type} ไม่สำเร็จ',
+        'scan_type_complete'      => 'สแกน {type} เสร็จสิ้น: พบ {count} ไฟล์',
+        'scan_type_failed'        => 'สแกน {type} ล้มเหลว',
+        'clear_failed'            => 'ล้างไม่สำเร็จ',
+        'scanning'                => 'กำลังสแกน...',
+        'clearing'                => 'กำลังล้าง...',
+        'fit_mode_toggle'      => 'สลับโหมดการแสดงผล',
+        'image_formats'        => 'รูปแบบภาพ',
+        'drag_to_resize_sidebar' => 'ลากเพื่อปรับขนาดแถบด้านข้าง',
+        'drag_to_resize_player'  => 'ลากเพื่อปรับขนาดเครื่องเล่น',
+        'uploading' => 'กำลังอัปโหลด...',
+        'upload_progress' => 'ความคืบหน้าการอัปโหลด',
+        'upload_chunk_progress' => 'ชิ้นส่วน {current}/{total}',
+        'upload_complete' => 'อัปโหลดเสร็จสิ้น',
+        'settings_saved' => 'บันทึกการตั้งค่าแล้ว',
+        'settings_save_error' => 'บันทึกการตั้งค่าล้มเหลว',
+        'force_delete' => 'ข้ามถังรีไซเคิล ลบทิ้งถาวรเลย',
+        'recycle_bin' => 'ถังรีไซเคิล',
+        'recycle_bin_enabled' => 'เปิดใช้ถังรีไซเคิล',
+        'recycle_bin_disabled' => 'ปิดใช้ถังรีไซเคิล',
+        'empty_recycle_bin' => 'ล้างถังรีไซเคิล',
+        'restore' => 'กู้คืน',
+        'restore_selected' => 'กู้คืนที่เลือก',
+        'delete_permanently' => 'ลบทิ้งถาวร',
+        'recycle_bin_empty' => 'ถังรีไซเคิลว่างเปล่า',
+        'auto_clean_days' => 'จำนวนวันล้างอัตโนมัติ',
+        'settings' => 'การตั้งค่า',
+        'save_settings' => 'บันทึกการตั้งค่า',
+        'settings_save_failed' => 'บันทึกการตั้งค่าล้มเหลว',
+        'settings_save_error' => 'ข้อผิดพลาดในการบันทึกการตั้งค่า',
+        'confirm_empty_recycle' => 'แน่ใจหรือไม่ที่จะล้างถังรีไซเคิล? การกระทำนี้ไม่สามารถยกเลิกได้!',
+        'confirm_delete_permanent' => 'แน่ใจหรือไม่ที่จะลบ {count} รายการที่เลือกแบบถาวร?',
+        'restore_success' => 'กู้คืนสำเร็จ {count} รายการ',
+        'restore_failed' => 'กู้คืนล้มเหลว {count} รายการ',
+        'delete_success' => 'ลบสำเร็จ {count} รายการ',
+        'delete_failed' => 'ลบล้มเหลว {count} รายการ',
+        'recycle_bin_cleared' => 'ล้างถังรีไซเคิลแล้ว',
+        'permanently_deleted' => 'ลบแบบถาวร {count} รายการแล้ว',
+        'moved_to_recycle' => 'ย้าย {count} รายการไปยังถังรีไซเคิลแล้ว',
+        'selected_items_count' => 'เลือก {count} รายการแล้ว',
+        'confirm_delete_selected' => 'แน่ใจหรือไม่ที่จะลบ {count} รายการ?',
+        'confirm_set_wallpaper'  => 'ตั้ง "{filename}" เป็นภาพพื้นหลังหรือไม่?',
+        'wallpaper_set_success'  => 'ตั้งค่าภาพพื้นหลังสำเร็จ',
+        'wallpaper_set_error'    => 'ตั้งค่าภาพพื้นหลังล้มเหลว',
+        'theme_restored'         => 'กู้คืนธีมเริ่มต้นแล้ว',
+        'set_as_wallpaper'       => 'ตั้งเป็นภาพพื้นหลัง',
+        'restore_default_theme'  => 'กู้คืนธีมเริ่มต้น',
+        'pause'                => 'หยุดชั่วคราว',
+        'previous_track'       => 'เพลงก่อนหน้า',
+        'next_track'           => 'เพลงถัดไป',
+        'play_pause'           => 'เล่น/หยุดชั่วคราว',
+        'aspect_ratio_tooltip' => 'อัตราส่วนภาพ',
+        'aspect_ratio'         => 'อัตราส่วน',
+        'mini_player'          => 'มินิเพลเยอร์',
+        'playback_speed' => 'ความเร็วในการเล่น',
         'validateYaml' => 'ตรวจสอบไวยากรณ์ YAML'
     ],
     'ru' => [
@@ -5000,6 +5373,68 @@ $langData = [
         'thumbnails_cleaned'       => 'Кэш миниатюр успешно очищен',
         'clean_thumbnails_failed'  => 'Не удалось очистить кэш миниатюр',
         'clean_thumbnails_error'   => 'Ошибка при очистке миниатюр',
+        'generate_qrcode'   => 'Создать QR-код',
+        'file_qrcode'       => 'QR-код файла',
+        'scan'                    => 'Сканировать',
+        'cached'                  => 'В кэше',
+        'full_media_scan'         => 'Полное сканирование медиа',
+        'confirm_clear_cache_type'=> 'Очистить кэш {type}?',
+        'cache_type_cleared'      => 'Кэш {type} очищен',
+        'clear_type_failed'       => 'Не удалось очистить кэш {type}',
+        'scan_type_complete'      => 'Сканирование {type} завершено: найдено {count} файлов',
+        'scan_type_failed'        => 'Сканирование {type} не удалось',
+        'clear_failed'            => 'Очистка не удалась',
+        'scanning'                => 'Сканирование...',
+        'clearing'                => 'Очистка...',
+        'fit_mode_toggle'      => 'Переключить режим отображения',
+        'image_formats'        => 'Форматы изображений',
+        'drag_to_resize_sidebar' => 'Перетащите для изменения ширины боковой панели',
+        'drag_to_resize_player'  => 'Перетащите для изменения ширины плеера',
+        'uploading' => 'Загрузка...',
+        'upload_progress' => 'Прогресс загрузки',
+        'upload_chunk_progress' => 'Фрагмент {current}/{total}',
+        'upload_complete' => 'Загрузка завершена',
+        'settings_saved' => 'Настройки сохранены',
+        'settings_save_error' => 'Ошибка сохранения настроек',
+        'force_delete' => 'Пропустить корзину, удалить навсегда',
+        'recycle_bin' => 'Корзина',
+        'recycle_bin_enabled' => 'Включить корзину',
+        'recycle_bin_disabled' => 'Отключить корзину',
+        'empty_recycle_bin' => 'Очистить корзину',
+        'restore' => 'Восстановить',
+        'restore_selected' => 'Восстановить выбранное',
+        'delete_permanently' => 'Удалить навсегда',
+        'recycle_bin_empty' => 'Корзина пуста',
+        'auto_clean_days' => 'Дней автоочистки',
+        'settings' => 'Настройки',
+        'save_settings' => 'Сохранить настройки',
+        'settings_save_failed' => 'Не удалось сохранить настройки',
+        'settings_save_error' => 'Ошибка сохранения настроек',
+        'confirm_empty_recycle' => 'Вы уверены, что хотите очистить корзину? Это действие необратимо!',
+        'confirm_delete_permanent' => 'Вы уверены, что хотите навсегда удалить {count} выбранных элементов?',
+        'restore_success' => 'Успешно восстановлено {count} элементов',
+        'restore_failed' => 'Не удалось восстановить {count} элементов',
+        'delete_success' => 'Успешно удалено {count} элементов',
+        'delete_failed' => 'Не удалось удалить {count} элементов',
+        'recycle_bin_cleared' => 'Корзина очищена',
+        'permanently_deleted' => 'Навсегда удалено {count} элементов',
+        'moved_to_recycle' => '{count} элементов перемещено в корзину',
+        'selected_items_count' => 'Выбрано элементов: {count}',
+        'confirm_delete_selected' => 'Вы уверены, что хотите удалить {count} элементов?',
+        'confirm_set_wallpaper'  => 'Установить "{filename}" в качестве обоев?',
+        'wallpaper_set_success'  => 'Обои успешно установлены',
+        'wallpaper_set_error'    => 'Не удалось установить обои',
+        'theme_restored'         => 'Тема по умолчанию восстановлена',
+        'set_as_wallpaper'       => 'Установить как обои',
+        'restore_default_theme'  => 'Восстановить тему по умолчанию',
+        'pause'                => 'Пауза',
+        'previous_track'       => 'Предыдущий трек',
+        'next_track'           => 'Следующий трек',
+        'play_pause'           => 'Воспроизвести/Пауза',
+        'aspect_ratio_tooltip' => 'Соотношение сторон',
+        'aspect_ratio'         => 'Соотношение',
+        'mini_player'          => 'Мини-плеер',
+        'playback_speed' => 'Скорость воспроизведения',
         'validateYaml' => 'Проверить синтаксис YAML'
     ],
     'ar' => [
@@ -5707,6 +6142,68 @@ $langData = [
         'thumbnails_cleaned'       => 'تم تنظيف ذاكرة الصور المصغرة بنجاح',
         'clean_thumbnails_failed'  => 'فشل في تنظيف ذاكرة الصور المصغرة',
         'clean_thumbnails_error'   => 'حدث خطأ أثناء تنظيف الصور المصغرة',
+        'generate_qrcode'   => 'إنشاء رمز QR',
+        'file_qrcode'       => 'رمز QR للملف',
+        'scan'                    => 'فحص',
+        'cached'                  => 'تم التخزين المؤقت',
+        'full_media_scan'         => 'فحص الوسائط الكامل',
+        'confirm_clear_cache_type'=> 'مسح ذاكرة التخزين المؤقت {type}؟',
+        'cache_type_cleared'      => 'تم مسح ذاكرة {type}',
+        'clear_type_failed'       => 'فشل في مسح ذاكرة {type}',
+        'scan_type_complete'      => 'اكتمل فحص {type}: تم العثور على {count} ملف',
+        'scan_type_failed'        => 'فشل فحص {type}',
+        'clear_failed'            => 'فشل المسح',
+        'scanning'                => 'جارٍ الفحص...',
+        'clearing'                => 'جارٍ المسح...',
+        'fit_mode_toggle'      => 'تبديل وضع العرض',
+        'image_formats'        => 'تنسيقات الصور',
+        'drag_to_resize_sidebar' => 'اسحب لتغيير حجم الشريط الجانبي',
+        'drag_to_resize_player'  => 'اسحب لتغيير حجم المشغل',
+        'uploading' => 'جاري الرفع...',
+        'upload_progress' => 'تقدم الرفع',
+        'upload_chunk_progress' => 'الجزء {current}/{total}',
+        'upload_complete' => 'اكتمل الرفع',
+        'settings_saved' => 'تم حفظ الإعدادات',
+        'settings_save_error' => 'فشل حفظ الإعدادات',
+        'force_delete' => 'تجاوز سلة المحذوفات، حذف نهائي مباشر',
+        'recycle_bin' => 'سلة المحذوفات',
+        'recycle_bin_enabled' => 'تفعيل سلة المحذوفات',
+        'recycle_bin_disabled' => 'تعطيل سلة المحذوفات',
+        'empty_recycle_bin' => 'إفراغ سلة المحذوفات',
+        'restore' => 'استعادة',
+        'restore_selected' => 'استعادة المحدد',
+        'delete_permanently' => 'حذف نهائي',
+        'recycle_bin_empty' => 'سلة المحذوفات فارغة',
+        'auto_clean_days' => 'أيام التنظيف التلقائي',
+        'settings' => 'الإعدادات',
+        'save_settings' => 'حفظ الإعدادات',
+        'settings_save_failed' => 'فشل حفظ الإعدادات',
+        'settings_save_error' => 'خطأ في حفظ الإعدادات',
+        'confirm_empty_recycle' => 'هل أنت متأكد من إفراغ سلة المحذوفات؟ هذا الإجراء لا يمكن التراجع عنه!',
+        'confirm_delete_permanent' => 'هل أنت متأكد من الحذف النهائي لـ {count} عناصر محددة؟',
+        'restore_success' => 'تم استعادة {count} عناصر بنجاح',
+        'restore_failed' => 'فشل استعادة {count} عناصر',
+        'delete_success' => 'تم حذف {count} عناصر بنجاح',
+        'delete_failed' => 'فشل حذف {count} عناصر',
+        'recycle_bin_cleared' => 'تم إفراغ سلة المحذوفات',
+        'permanently_deleted' => 'تم حذف {count} عناصر نهائياً',
+        'moved_to_recycle' => 'تم نقل {count} عناصر إلى سلة المحذوفات',
+        'selected_items_count' => 'تم تحديد {count} عناصر',
+        'confirm_delete_selected' => 'هل أنت متأكد من حذف {count} عناصر؟',
+        'confirm_set_wallpaper'  => 'تعيين "{filename}" كخلفية؟',
+        'wallpaper_set_success'  => 'تم تعيين الخلفية بنجاح',
+        'wallpaper_set_error'    => 'فشل في تعيين الخلفية',
+        'theme_restored'         => 'تمت استعادة السمة الافتراضية',
+        'set_as_wallpaper'       => 'تعيين كخلفية',
+        'restore_default_theme'  => 'استعادة السمة الافتراضية',
+        'pause'                => 'إيقاف مؤقت',
+        'previous_track'       => 'المسار السابق',
+        'next_track'           => 'المسار التالي',
+        'play_pause'           => 'تشغيل/إيقاف مؤقت',
+        'aspect_ratio_tooltip' => 'نسبة العرض',
+        'aspect_ratio'         => 'النسبة',
+        'mini_player'          => 'مشغل صغير',
+        'playback_speed' => 'سرعة التشغيل',
         'validateYaml' => 'التحقق من صحة بناء جملة YAML'
     ],
     'es' => [
@@ -6406,6 +6903,68 @@ $langData = [
         'thumbnails_cleaned'       => 'Caché de miniaturas limpiada correctamente',
         'clean_thumbnails_failed'  => 'Error al limpiar la caché de miniaturas',
         'clean_thumbnails_error'   => 'Error al limpiar las miniaturas',
+        'generate_qrcode'   => 'Generar código QR',
+        'file_qrcode'       => 'Código QR del archivo',
+        'scan'                    => 'Escanear',
+        'cached'                  => 'En caché',
+        'full_media_scan'         => 'Escaneo completo de medios',
+        'confirm_clear_cache_type'=> '¿Borrar caché de {type}?',
+        'cache_type_cleared'      => 'Caché de {type} borrada',
+        'clear_type_failed'       => 'Error al borrar la caché de {type}',
+        'scan_type_complete'      => 'Escaneo de {type} completo: {count} archivos encontrados',
+        'scan_type_failed'        => 'Escaneo de {type} fallido',
+        'clear_failed'            => 'Error al borrar',
+        'scanning'                => 'Escaneando...',
+        'clearing'                => 'Borrando...',
+        'fit_mode_toggle'      => 'Cambiar modo de visualización',
+        'image_formats'        => 'Formatos de imagen',
+        'drag_to_resize_sidebar' => 'Arrastra para cambiar el tamaño de la barra lateral',
+        'drag_to_resize_player'  => 'Arrastra para cambiar el tamaño del reproductor',
+        'uploading' => 'Subiendo...',
+        'upload_progress' => 'Progreso de subida',
+        'upload_chunk_progress' => 'Fragmento {current}/{total}',
+        'upload_complete' => 'Subida completada',
+        'settings_saved' => 'Configuración guardada',
+        'settings_save_error' => 'Error al guardar configuración',
+        'force_delete' => 'Omitir papelera, eliminar permanentemente',
+        'recycle_bin' => 'Papelera',
+        'recycle_bin_enabled' => 'Activar papelera',
+        'recycle_bin_disabled' => 'Desactivar papelera',
+        'empty_recycle_bin' => 'Vaciar papelera',
+        'restore' => 'Restaurar',
+        'restore_selected' => 'Restaurar seleccionados',
+        'delete_permanently' => 'Eliminar permanentemente',
+        'recycle_bin_empty' => 'La papelera está vacía',
+        'auto_clean_days' => 'Días de limpieza automática',
+        'settings' => 'Configuración',
+        'save_settings' => 'Guardar configuración',
+        'settings_save_failed' => 'Error al guardar configuración',
+        'settings_save_error' => 'Error al guardar configuración',
+        'confirm_empty_recycle' => '¿Está seguro de vaciar la papelera? ¡Esta acción no se puede deshacer!',
+        'confirm_delete_permanent' => '¿Está seguro de eliminar permanentemente {count} elementos seleccionados?',
+        'restore_success' => 'Se restauraron {count} elementos correctamente',
+        'restore_failed' => 'Error al restaurar {count} elementos',
+        'delete_success' => 'Se eliminaron {count} elementos correctamente',
+        'delete_failed' => 'Error al eliminar {count} elementos',
+        'recycle_bin_cleared' => 'Papelera vaciada',
+        'permanently_deleted' => 'Se eliminaron permanentemente {count} elementos',
+        'moved_to_recycle' => 'Se movieron {count} elementos a la papelera',
+        'selected_items_count' => '{count} elementos seleccionados',
+        'confirm_delete_selected' => '¿Está seguro de eliminar {count} elementos?',
+        'confirm_set_wallpaper'  => '¿Establecer "{filename}" como fondo de pantalla?',
+        'wallpaper_set_success'  => 'Fondo de pantalla establecido correctamente',
+        'wallpaper_set_error'    => 'Error al establecer el fondo de pantalla',
+        'theme_restored'         => 'Tema predeterminado restaurado',
+        'set_as_wallpaper'       => 'Establecer como fondo',
+        'restore_default_theme'  => 'Restaurar tema predeterminado',
+        'pause'                => 'Pausa',
+        'previous_track'       => 'Pista anterior',
+        'next_track'           => 'Siguiente pista',
+        'play_pause'           => 'Reproducir/Pausa',
+        'aspect_ratio_tooltip' => 'Relación de aspecto',
+        'aspect_ratio'         => 'Relación',
+        'playback_speed' => 'Velocidad de reproducción',
+        'mini_player'          => 'Mini reproductor',
         'validateYaml' => 'Validar sintaxis YAML'
     ],
     'de' => [
@@ -7107,6 +7666,68 @@ $langData = [
         'thumbnails_cleaned'       => 'Vorschaubild-Cache erfolgreich bereinigt',
         'clean_thumbnails_failed'  => 'Bereinigung des Vorschaubild-Caches fehlgeschlagen',
         'clean_thumbnails_error'   => 'Fehler beim Bereinigen der Vorschaubilder',
+        'generate_qrcode'   => 'QR-Code generieren',
+        'file_qrcode'       => 'Datei-QR-Code',
+        'scan'                    => 'Scannen',
+        'cached'                  => 'Im Cache',
+        'full_media_scan'         => 'Vollständiger Medienscan',
+        'confirm_clear_cache_type'=> '{type}-Cache löschen?',
+        'cache_type_cleared'      => '{type}-Cache gelöscht',
+        'clear_type_failed'       => '{type}-Cache konnte nicht gelöscht werden',
+        'scan_type_complete'      => '{type}-Scan abgeschlossen: {count} Dateien gefunden',
+        'scan_type_failed'        => '{type}-Scan fehlgeschlagen',
+        'clear_failed'            => 'Löschen fehlgeschlagen',
+        'scanning'                => 'Scannen...',
+        'clearing'                => 'Löschen...',
+        'fit_mode_toggle'      => 'Anzeigemodus wechseln',
+        'image_formats'        => 'Bildformate',
+        'drag_to_resize_sidebar' => 'Zum Ändern der Seitenleistenbreite ziehen',
+        'drag_to_resize_player'  => 'Zum Ändern der Playerbreite ziehen',
+        'uploading' => 'Hochladen...',
+        'upload_progress' => 'Upload-Fortschritt',
+        'upload_chunk_progress' => 'Segment {current}/{total}',
+        'upload_complete' => 'Upload abgeschlossen',
+        'settings_saved' => 'Einstellungen gespeichert',
+        'settings_save_error' => 'Fehler beim Speichern der Einstellungen',
+        'force_delete' => 'Papierkorb überspringen, endgültig löschen',
+        'recycle_bin' => 'Papierkorb',
+        'recycle_bin_enabled' => 'Papierkorb aktivieren',
+        'recycle_bin_disabled' => 'Papierkorb deaktivieren',
+        'empty_recycle_bin' => 'Papierkorb leeren',
+        'restore' => 'Wiederherstellen',
+        'restore_selected' => 'Ausgewählte wiederherstellen',
+        'delete_permanently' => 'Endgültig löschen',
+        'recycle_bin_empty' => 'Der Papierkorb ist leer',
+        'auto_clean_days' => 'Tage bis zur automatischen Leerung',
+        'settings' => 'Einstellungen',
+        'save_settings' => 'Einstellungen speichern',
+        'settings_save_failed' => 'Speichern der Einstellungen fehlgeschlagen',
+        'settings_save_error' => 'Fehler beim Speichern der Einstellungen',
+        'confirm_empty_recycle' => 'Sind Sie sicher, dass Sie den Papierkorb leeren möchten? Diese Aktion kann nicht rückgängig gemacht werden!',
+        'confirm_delete_permanent' => 'Sind Sie sicher, dass Sie die ausgewählten {count} Elemente endgültig löschen möchten?',
+        'restore_success' => '{count} Elemente erfolgreich wiederhergestellt',
+        'restore_failed' => 'Wiederherstellung von {count} Elementen fehlgeschlagen',
+        'delete_success' => '{count} Elemente erfolgreich gelöscht',
+        'delete_failed' => 'Löschen von {count} Elementen fehlgeschlagen',
+        'recycle_bin_cleared' => 'Papierkorb wurde geleert',
+        'permanently_deleted' => '{count} Elemente endgültig gelöscht',
+        'moved_to_recycle' => '{count} Elemente in den Papierkorb verschoben',
+        'selected_items_count' => '{count} Elemente ausgewählt',
+        'confirm_delete_selected' => 'Sind Sie sicher, dass Sie {count} Elemente löschen möchten?',
+        'confirm_set_wallpaper'  => '"{filename}" als Hintergrund festlegen?',
+        'wallpaper_set_success'  => 'Hintergrund erfolgreich festgelegt',
+        'wallpaper_set_error'    => 'Fehler beim Festlegen des Hintergrunds',
+        'theme_restored'         => 'Standarddesign wiederhergestellt',
+        'set_as_wallpaper'       => 'Als Hintergrund festlegen',
+        'restore_default_theme'  => 'Standarddesign wiederherstellen',
+        'pause'                => 'Pause',
+        'previous_track'       => 'Vorheriger Titel',
+        'next_track'           => 'Nächster Titel',
+        'play_pause'           => 'Wiedergabe/Pause',
+        'aspect_ratio_tooltip' => 'Seitenverhältnis',
+        'aspect_ratio'         => 'Verhältnis',
+        'mini_player'          => 'Mini-Player',
+        'playback_speed' => 'Wiedergabegeschwindigkeit',
         'validateYaml' => 'YAML-Syntax validieren'
     ],
 
@@ -7809,6 +8430,68 @@ $langData = [
         'thumbnails_cleaned'       => 'Cache des miniatures nettoyé avec succès',
         'clean_thumbnails_failed'  => 'Échec du nettoyage du cache des miniatures',
         'clean_thumbnails_error'   => 'Erreur lors du nettoyage des miniatures',
+        'generate_qrcode'   => 'Générer un code QR',
+        'file_qrcode'       => 'Code QR du fichier',
+        'scan'                    => 'Analyser',
+        'cached'                  => 'En cache',
+        'full_media_scan'         => 'Analyse complète des médias',
+        'confirm_clear_cache_type'=> 'Supprimer le cache {type} ?',
+        'cache_type_cleared'      => 'Cache {type} supprimé',
+        'clear_type_failed'       => 'Échec de la suppression du cache {type}',
+        'scan_type_complete'      => 'Analyse {type} terminée : {count} fichiers trouvés',
+        'scan_type_failed'        => 'Échec de l’analyse {type}',
+        'clear_failed'            => 'Échec de la suppression',
+        'scanning'                => 'Analyse en cours...',
+        'clearing'                => 'Suppression en cours...',
+        'fit_mode_toggle'      => 'Basculer le mode d’affichage',
+        'image_formats'        => 'Formats d’image',
+        'drag_to_resize_sidebar' => 'Faites glisser pour redimensionner la barre latérale',
+        'drag_to_resize_player'  => 'Faites glisser pour redimensionner le lecteur',
+        'uploading' => 'Téléchargement...',
+        'upload_progress' => 'Progression du téléchargement',
+        'upload_chunk_progress' => 'Fragment {current}/{total}',
+        'upload_complete' => 'Téléchargement terminé',
+        'settings_saved' => 'Paramètres enregistrés',
+        'settings_save_error' => 'Échec de l\'enregistrement des paramètres',
+        'force_delete' => 'Ignorer la corbeille, supprimer définitivement',
+        'recycle_bin' => 'Corbeille',
+        'recycle_bin_enabled' => 'Activer la corbeille',
+        'recycle_bin_disabled' => 'Désactiver la corbeille',
+        'empty_recycle_bin' => 'Vider la corbeille',
+        'restore' => 'Restaurer',
+        'restore_selected' => 'Restaurer la sélection',
+        'delete_permanently' => 'Supprimer définitivement',
+        'recycle_bin_empty' => 'La corbeille est vide',
+        'auto_clean_days' => 'Jours avant nettoyage automatique',
+        'settings' => 'Paramètres',
+        'save_settings' => 'Enregistrer les paramètres',
+        'settings_save_failed' => 'Échec de l\'enregistrement des paramètres',
+        'settings_save_error' => 'Erreur lors de l\'enregistrement des paramètres',
+        'confirm_empty_recycle' => 'Êtes-vous sûr de vouloir vider la corbeille ? Cette action est irréversible !',
+        'confirm_delete_permanent' => 'Êtes-vous sûr de vouloir supprimer définitivement {count} éléments sélectionnés ?',
+        'restore_success' => '{count} éléments restaurés avec succès',
+        'restore_failed' => 'Échec de la restauration de {count} éléments',
+        'delete_success' => '{count} éléments supprimés avec succès',
+        'delete_failed' => 'Échec de la suppression de {count} éléments',
+        'recycle_bin_cleared' => 'Corbeille vidée',
+        'permanently_deleted' => '{count} éléments définitivement supprimés',
+        'moved_to_recycle' => '{count} éléments déplacés vers la corbeille',
+        'selected_items_count' => '{count} éléments sélectionnés',
+        'confirm_delete_selected' => 'Êtes-vous sûr de vouloir supprimer {count} éléments ?',
+        'confirm_set_wallpaper'  => 'Définir "{filename}" comme fond d’écran ?',
+        'wallpaper_set_success'  => 'Fond d’écran défini avec succès',
+        'wallpaper_set_error'    => 'Échec de la définition du fond d’écran',
+        'theme_restored'         => 'Thème par défaut restauré',
+        'set_as_wallpaper'       => 'Définir comme fond d’écran',
+        'restore_default_theme'  => 'Restaurer le thème par défaut',
+        'pause'                => 'Pause',
+        'previous_track'       => 'Piste précédente',
+        'next_track'           => 'Piste suivante',
+        'play_pause'           => 'Lecture/Pause',
+        'aspect_ratio_tooltip' => 'Format d’image',
+        'aspect_ratio'         => 'Format',
+        'mini_player'          => 'Mini lecteur',
+        'playback_speed' => 'Vitesse de lecture',
         'validateYaml' => 'Valider la syntaxe YAML'
     ],
     'en' => [
@@ -8522,6 +9205,68 @@ $langData = [
         'thumbnails_cleaned'       => 'Thumbnail cache cleaned successfully',
         'clean_thumbnails_failed'  => 'Failed to clean thumbnail cache',
         'clean_thumbnails_error'   => 'Error occurred while cleaning thumbnails',
+        'generate_qrcode'   => 'Generate QR Code',
+        'file_qrcode'       => 'File QR Code',
+        'scan'                    => 'Scan',
+        'cached'                  => 'Cached',
+        'full_media_scan'         => 'Full Media Scan',
+        'confirm_clear_cache_type'=> 'Clear {type} cache?',
+        'cache_type_cleared'      => '{type} cache cleared',
+        'clear_type_failed'       => 'Failed to clear {type} cache',
+        'scan_type_complete'      => '{type} scan complete: found {count} files',
+        'scan_type_failed'        => '{type} scan failed',
+        'clear_failed'            => 'Clear failed',
+        'scanning'                => 'Scanning...',
+        'clearing'                => 'Clearing...',
+        'fit_mode_toggle'      => 'Toggle Display Mode',
+        'image_formats'        => 'Image Formats',
+        'drag_to_resize_sidebar' => 'Drag to resize sidebar',
+        'drag_to_resize_player'  => 'Drag to resize player',
+        'uploading' => 'Uploading...',
+        'upload_progress' => 'Upload Progress',
+        'upload_chunk_progress' => 'Chunk {current}/{total}',
+        'upload_complete' => 'Upload Complete',
+        'settings_saved' => 'Settings saved',
+        'settings_save_error' => 'Settings save failed',
+        'force_delete' => 'Skip recycle bin, permanently delete immediately',
+        'recycle_bin' => 'Recycle Bin',
+        'recycle_bin_enabled' => 'Enable Recycle Bin',
+        'recycle_bin_disabled' => 'Disable Recycle Bin',
+        'empty_recycle_bin' => 'Empty Recycle Bin',
+        'restore' => 'Restore',
+        'restore_selected' => 'Restore Selected',
+        'delete_permanently' => 'Delete Permanently',
+        'recycle_bin_empty' => 'Recycle bin is empty',
+        'auto_clean_days' => 'Auto clean days',
+        'settings' => 'Settings',
+        'save_settings' => 'Save Settings',
+        'settings_save_failed' => 'Failed to save settings',
+        'settings_save_error' => 'Error saving settings',
+        'confirm_empty_recycle' => 'Are you sure you want to empty the recycle bin? This action cannot be undone!',
+        'confirm_delete_permanent' => 'Are you sure you want to permanently delete {count} selected items?',
+        'restore_success' => 'Successfully restored {count} items',
+        'restore_failed' => 'Failed to restore {count} items',
+        'delete_success' => 'Successfully deleted {count} items',
+        'delete_failed' => 'Failed to delete {count} items',
+        'recycle_bin_cleared' => 'Recycle bin emptied',
+        'permanently_deleted' => 'Permanently deleted {count} items',
+        'moved_to_recycle' => 'Moved {count} items to recycle bin',
+        'selected_items_count' => '{count} items selected',
+        'confirm_delete_selected' => 'Are you sure you want to delete {count} items?',
+        'confirm_set_wallpaper'  => 'Set "{filename}" as wallpaper?',
+        'wallpaper_set_success'  => 'Wallpaper set successfully',
+        'wallpaper_set_error'    => 'Failed to set wallpaper',
+        'theme_restored'         => 'Default theme restored',
+        'set_as_wallpaper'       => 'Set as Wallpaper',
+        'pause'                => 'Pause',
+        'previous_track'       => 'Previous Track',
+        'next_track'           => 'Next Track',
+        'play_pause'           => 'Play/Pause',
+        'aspect_ratio_tooltip' => 'Aspect Ratio',
+        'aspect_ratio'         => 'Ratio',
+        'mini_player'          => 'Mini Player',
+        'restore_default_theme'  => 'Restore Default Theme',
+        'playback_speed' => 'Playback Speed',
         'validateYaml' => 'Validate YAML Syntax'
     ],
     'bn' => [
@@ -9223,6 +9968,68 @@ $langData = [
         'thumbnails_cleaned'       => 'থাম্বনেইল ক্যাশ সফলভাবে পরিষ্কার হয়েছে',
         'clean_thumbnails_failed'  => 'থাম্বনেইল ক্যাশ পরিষ্কার করতে ব্যর্থ',
         'clean_thumbnails_error'   => 'থাম্বনেইল পরিষ্কার করার সময় ত্রুটি ঘটেছে',
+        'generate_qrcode'   => 'কিউআর কোড তৈরি করুন',
+        'file_qrcode'       => 'ফাইল কিউআর কোড',
+        'scan'                    => 'স্ক্যান',
+        'cached'                  => 'ক্যাশ করা হয়েছে',
+        'full_media_scan'         => 'সম্পূর্ণ মিডিয়া স্ক্যান',
+        'confirm_clear_cache_type'=> '{type} ক্যাশ মুছবেন?',
+        'cache_type_cleared'      => '{type} ক্যাশ মুছে ফেলা হয়েছে',
+        'clear_type_failed'       => '{type} ক্যাশ মুছতে ব্যর্থ',
+        'scan_type_complete'      => '{type} স্ক্যান সম্পন্ন: {count} টি ফাইল পাওয়া গেছে',
+        'scan_type_failed'        => '{type} স্ক্যান ব্যর্থ',
+        'clear_failed'            => 'মুছতে ব্যর্থ',
+        'scanning'                => 'স্ক্যান চলছে...',
+        'clearing'                => 'মুছা হচ্ছে...',
+        'fit_mode_toggle'      => 'প্রদর্শন মোড পরিবর্তন',
+        'image_formats'        => 'ছবির ফরম্যাট',
+        'drag_to_resize_sidebar' => 'সাইডবারের আকার পরিবর্তন করতে টানুন',
+        'drag_to_resize_player'  => 'প্লেয়ারের আকার পরিবর্তন করতে টানুন',
+        'uploading' => 'আপলোড হচ্ছে...',
+        'upload_progress' => 'আপলোড অগ্রগতি',
+        'upload_chunk_progress' => 'খণ্ড {current}/{total}',
+        'upload_complete' => 'আপলোড সম্পূর্ণ',
+        'settings_saved' => 'সেটিংস সংরক্ষিত হয়েছে',
+        'settings_save_error' => 'সেটিংস সংরক্ষণ ব্যর্থ হয়েছে',
+        'force_delete' => 'রিসাইকেল বিন এড়িয়ে যান, সরাসরি স্থায়ীভাবে মুছুন',
+        'recycle_bin' => 'রিসাইকেল বিন',
+        'recycle_bin_enabled' => 'রিসাইকেল বিন সক্রিয় করুন',
+        'recycle_bin_disabled' => 'রিসাইকেল বিন নিষ্ক্রিয় করুন',
+        'empty_recycle_bin' => 'রিসাইকেল বিন খালি করুন',
+        'restore' => 'পুনরুদ্ধার করুন',
+        'restore_selected' => 'নির্বাচিত পুনরুদ্ধার করুন',
+        'delete_permanently' => 'স্থায়ীভাবে মুছুন',
+        'recycle_bin_empty' => 'রিসাইকেল বিন খালি',
+        'auto_clean_days' => 'স্বয়ংক্রিয় পরিষ্কারের দিন',
+        'settings' => 'সেটিংস',
+        'save_settings' => 'সেটিংস সংরক্ষণ করুন',
+        'settings_save_failed' => 'সেটিংস সংরক্ষণ ব্যর্থ হয়েছে',
+        'settings_save_error' => 'সেটিংস সংরক্ষণে ত্রুটি',
+        'confirm_empty_recycle' => 'আপনি কি নিশ্চিতভাবে রিসাইকেল বিন খালি করতে চান? এই কাজটি বাতিল করা যাবে না!',
+        'confirm_delete_permanent' => 'আপনি কি নির্বাচিত {count}টি আইটেম স্থায়ীভাবে মুছতে নিশ্চিত?',
+        'restore_success' => 'সফলভাবে {count}টি আইটেম পুনরুদ্ধার করা হয়েছে',
+        'restore_failed' => '{count}টি আইটেম পুনরুদ্ধার ব্যর্থ হয়েছে',
+        'delete_success' => 'সফলভাবে {count}টি আইটেম মুছে ফেলা হয়েছে',
+        'delete_failed' => '{count}টি আইটেম মুছতে ব্যর্থ হয়েছে',
+        'recycle_bin_cleared' => 'রিসাইকেল বিন খালি করা হয়েছে',
+        'permanently_deleted' => 'স্থায়ীভাবে {count}টি আইটেম মুছে ফেলা হয়েছে',
+        'moved_to_recycle' => '{count}টি আইটেম রিসাইকেল বিনে সরানো হয়েছে',
+        'selected_items_count' => '{count}টি আইটেম নির্বাচিত',
+        'confirm_delete_selected' => 'আপনি কি {count}টি আইটেম মুছতে নিশ্চিত?',
+        'confirm_set_wallpaper'  => '"{filename}" কি ওয়ালপেপার হিসেবে সেট করবেন?',
+        'wallpaper_set_success'  => 'ওয়ালপেপার সফলভাবে সেট হয়েছে',
+        'wallpaper_set_error'    => 'ওয়ালপেপার সেট করতে ব্যর্থ',
+        'theme_restored'         => 'ডিফল্ট থিম পুনরুদ্ধার হয়েছে',
+        'set_as_wallpaper'       => 'ওয়ালপেপার হিসেবে সেট করুন',
+        'restore_default_theme'  => 'ডিফল্ট থিম পুনরুদ্ধার করুন',
+        'pause'                => 'বিরতি',
+        'previous_track'       => 'আগের ট্র্যাক',
+        'next_track'           => 'পরবর্তী ট্র্যাক',
+        'play_pause'           => 'চালু/বিরতি',
+        'aspect_ratio_tooltip' => 'দৃশ্য অনুপাত',
+        'aspect_ratio'         => 'অনুপাত',
+        'mini_player'          => 'মিনি প্লেয়ার',
+        'playback_speed' => 'প্লেব্যাক গতি',
         'validateYaml' => 'YAML সিনট্যাক্স যাচাই করুন'
     ]
 ];
@@ -9684,6 +10491,11 @@ function getChineseVoiceKey() {
     return 'voicePreference_chinese';
 }
 
+function logAndSpeak(message, type = '') {
+    showLogMessage(message, type);
+    speakMessage(message);
+}
+
 function updateFlagIcon(lang) {
     const flagImg = document.getElementById('flagIcon');
     if (!flagImg) return;
@@ -9740,19 +10552,147 @@ function changeLanguage(lang) {
             };
 
             const message = langLabelMap[lang] || 'Language switched';
-
-            if (typeof speakMessage === 'function') {
-                speakMessage(message);
-            }
-            if (typeof showLogMessage === 'function') {
-                showLogMessage(message);
-            }
+            logAndSpeak(message);
         }
     });
 }
 </script>
 
 <style>
+:root {
+    /* ===== Core Design Tokens ===== */
+    --base-hue: 260;
+    --base-chroma: 0.25;
+    --danger-base: 15;
+    --l: 80%;
+    --c: 0.25;
+       
+    /* ===== Neutral Color System ===== */
+    --neutral-50: oklch(98% 0.01 var(--base-hue));
+    --neutral-100: oklch(95% 0.015 var(--base-hue));
+    --neutral-200: oklch(90% 0.02 var(--base-hue));
+    --neutral-300: oklch(85% 0.025 var(--base-hue));
+    --neutral-400: oklch(75% 0.03 var(--base-hue));
+    --neutral-500: oklch(65% 0.035 var(--base-hue));
+    --neutral-600: oklch(55% 0.04 var(--base-hue));
+    --neutral-700: oklch(45% 0.045 var(--base-hue));
+    --neutral-800: oklch(35% 0.05 var(--base-hue));
+    --neutral-900: oklch(25% 0.055 var(--base-hue));
+    
+    /* ===== Spacing Scale ===== */
+    --space-unit: 4px;
+    --space-xs: calc(var(--space-unit) * 1);   /* 4px */
+    --space-sm: calc(var(--space-unit) * 2);   /* 8px */
+    --space-md: calc(var(--space-unit) * 4);   /* 16px */
+    --space-lg: calc(var(--space-unit) * 6);   /* 24px */
+    --space-xl: calc(var(--space-unit) * 8);   /* 32px */
+    --space-2xl: calc(var(--space-unit) * 12); /* 48px */
+    --space-3xl: calc(var(--space-unit) * 16); /* 64px */
+    
+    /* ===== Typography Scale ===== */
+    --text-xs: 0.75rem;    /* 12px */
+    --text-sm: 0.875rem;   /* 14px */
+    --text-base: 1rem;     /* 16px */
+    --text-lg: 1.125rem;   /* 18px */
+    --text-xl: 1.25rem;    /* 20px */
+    --text-2xl: 1.5rem;    /* 24px */
+    --text-3xl: 1.875rem;  /* 30px */
+    --text-4xl: 2.25rem;   /* 36px */
+    
+    /* ===== Motion System ===== */
+    --ease-linear: linear;
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    
+    /* Animation durations */
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 350ms;
+    --duration-very-slow: 500ms;
+    
+    /* ===== Shadow System ===== */
+    /* Base elevation levels */
+    --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px oklch(0% 0 0 / 0.1), 0 2px 4px -2px oklch(0% 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px oklch(0% 0 0 / 0.1), 0 4px 6px -4px oklch(0% 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px oklch(0% 0 0 / 0.1), 0 8px 10px -6px oklch(0% 0 0 / 0.1);
+    --glass-border: 1px solid oklch(100% 0 0 / 0.1);
+    
+    /* Emphasis shadows */
+    --shadow-focus: 0 0 0 3px color-mix(in oklch, var(--accent-color), transparent 70%);
+    --shadow-ring: 0 0 0 4px color-mix(in oklch, var(--accent-color), transparent 80%);
+    
+    /* State backgrounds (subtle) */
+    --state-success-bg: color-mix(in oklch, var(--state-success), transparent 90%);
+    --state-info-bg: color-mix(in oklch, var(--state-info), transparent 90%);
+    --state-warning-bg: color-mix(in oklch, var(--state-warning), transparent 90%);
+    --state-danger-bg: color-mix(in oklch, var(--state-danger), transparent 90%);
+    
+    /* State borders */
+    --state-success-border: color-mix(in oklch, var(--state-success), transparent 70%);
+    --state-danger-border: color-mix(in oklch, var(--state-danger), transparent 70%);
+    --active-bg: oklch(var(--l) var(--base-chroma) var(--base-hue));
+    
+    /* ===== Surface Elevation System ===== */
+    /* Base surfaces */
+    --surface: var(--card-bg);
+    --surface-elevated: color-mix(in oklch, var(--card-bg), white 10%);
+    --surface-high: color-mix(in oklch, var(--card-bg), white 20%);
+    --surface-highest: color-mix(in oklch, var(--card-bg), white 30%);
+    
+    /* Floating surfaces */
+    --surface-floating: color-mix(in oklch, var(--card-bg), white 15%);
+    --surface-modal: color-mix(in oklch, var(--card-bg), white 25%);
+    
+    /* ===== Glassmorphism Effects ===== */
+    --glass-blur: blur(20px);
+    --glass-blur-light: blur(12px);
+    --glass-blur-small: blur(10px);
+    --glass-blur-mini: blur(6px);
+    --glass-opacity: 0.85;
+    
+    /* ===== Radius System ===== */
+    --radius: 20px;
+    --radius-small: 12px;
+    --radius-mini: 8px;
+    --radius-full: 9999px;
+    --radius-pill: 50px;    
+
+    --color-red: oklch(55% 0.3 25);
+    --color-orange: oklch(65% 0.25 55);
+    --color-yellow: oklch(75% 0.25 90);
+    --color-green: oklch(65% 0.3 140);
+    --color-blue: oklch(55% 0.3 240);
+    --color-indigo: oklch(45% 0.35 280);
+    --color-violet: oklch(55% 0.35 310);
+
+    --color-cyan: oklch(70% 0.2 200);
+    --color-magenta: oklch(60% 0.35 330);
+    --color-pink: oklch(65% 0.3 350);
+    --color-brown: oklch(45% 0.15 45);
+    --color-gray: oklch(55.75% 0.0165 244.9);
+    --color-black: oklch(15% 0.05 0);
+    --color-white: oklch(98% 0.01 0);
+
+    --state-success: oklch(65% 0.3 140);
+    --state-info: oklch(55% 0.3 240);
+    --state-warning: oklch(75% 0.25 90);
+    --state-danger: oklch(65% 0.25 15);
+
+    --shadow-inset: 
+        2px 0 6px -2px color-mix(in oklch, var(--bg-container), black 30%),
+        -2px 0 6px -2px color-mix(in oklch, var(--bg-container), black 30%),
+        0 2px 6px -2px color-mix(in oklch, var(--bg-container), black 30%),
+        0 -2px 6px -2px color-mix(in oklch, var(--bg-container), black 30%);
+
+    --shadow-intensity: 0.25;
+    --text-shadow: 0 1px 2px oklch(0% 0 0 / 0.3);
+    --transition-speed: 0.3s;
+    --highlight-intensity: 0.8;
+}
+
 [data-theme="dark"] {
     --base-hue: 260;
     --base-chroma: 0.25;
@@ -9767,8 +10707,13 @@ function changeLanguage(lang) {
     --l: 80%;
     --c: 0.25;
     --radius: 16px;
+
+    --border-color: oklch(40% var(--base-chroma) var(--base-hue));
     --border-light: 1px solid oklch(60% 0.05 var(--base-hue) / 0.3);
     --border-strong: 1px solid oklch(70% 0.1 var(--base-hue) / 0.6);
+    --glow-primary: oklch(82% 0.32 var(--base-hue));
+    --glow-secondary: oklch(78% 0.28 calc(var(--base-hue) + 10));
+
     --bg-body: oklch(40% var(--base-chroma) var(--base-hue) / 90%);
     --bg-container: oklch(30% var(--base-chroma) var(--base-hue));
     --text-primary: oklch(95% 0 0);
@@ -9777,7 +10722,7 @@ function changeLanguage(lang) {
     --accent-tertiary: oklch(72% 0.18 calc(var(--base-hue) + 120));
     --card-bg: oklch(25% var(--base-chroma) var(--base-hue));
     --header-bg: oklch(35% var(--base-chroma) var(--base-hue));
-    --border-color: oklch(40% var(--base-chroma) var(--base-hue));
+
     --btn-primary-bg: oklch(50% 0.15 var(--base-hue));
     --btn-success-bg: oklch(50% 0.2 240);
     --nav-btn-color: oklch(95% 0 0 / 80%);
@@ -9815,6 +10760,63 @@ function changeLanguage(lang) {
         0 0 16px oklch(90% 0.25 var(--base-hue) / 0.3);
 
     --sand-bg: oklch(42% 0.3 calc(var(--base-hue) + 60));
+    --breathing-animation: breathing 3s ease-in-out infinite;
+
+    --glow-border: 1px solid color-mix(in oklch, var(--glow-primary), transparent 20%);
+
+    --glow-shadow-default:
+        0 2px 8px 1px color-mix(in oklch, var(--glow-primary), transparent 40%),
+        0 4px 24px 2px color-mix(in oklch, var(--glow-secondary), transparent 60%),
+        inset 0 0 12px color-mix(in oklch, var(--glow-primary), transparent 70%),
+        0 0 20px 6px oklch(82% 0.32 260 / 0);
+
+    --glow-shadow-hover:
+        0 4px 16px 2px color-mix(in oklch, var(--glow-primary), transparent 30%),
+        0 8px 32px 4px color-mix(in oklch, var(--glow-secondary), transparent 50%),
+        inset 0 0 24px color-mix(in oklch, var(--glow-primary), transparent 60%),
+        0 0 28px 8px oklch(82% 0.32 260 / 0.7);
+
+    --glow-shadow-breath-start:
+        0 2px 8px 1px color-mix(in oklch, var(--glow-primary), transparent 40%),
+        0 4px 24px 2px color-mix(in oklch, var(--glow-secondary), transparent 60%),
+        inset 0 0 12px color-mix(in oklch, var(--glow-primary), transparent 70%),
+        0 0 8px 2px oklch(90% 0.4 260 / 0.3);
+
+    --glow-shadow-breath-middle:
+        0 1px 4px 0.5px color-mix(in oklch, var(--glow-primary), transparent 60%),
+        0 2px 12px 1px color-mix(in oklch, var(--glow-secondary), transparent 80%),
+        inset 0 0 6px color-mix(in oklch, var(--glow-primary), transparent 85%),
+        0 0 16px 3px oklch(95% 0.45 260 / 0.9);
+
+    --glow-primary-hover: oklch(88% 0.35 var(--base-hue));
+    --glow-secondary-hover: oklch(85% 0.3 calc(var(--base-hue) + 15));
+}
+
+@keyframes breathing {
+    0%, 100% {
+        box-shadow: 
+            0 2px 8px 1px color-mix(in oklch, var(--glow-primary), transparent 40%),
+            0 4px 24px 2px color-mix(in oklch, var(--glow-secondary), transparent 60%),
+            inset 0 0 12px color-mix(in oklch, var(--glow-primary), transparent 70%);
+    }
+    50% {
+        box-shadow: 
+            0 4px 16px 2px color-mix(in oklch, var(--glow-primary), transparent 30%),
+            0 8px 32px 4px color-mix(in oklch, var(--glow-secondary), transparent 50%),
+            inset 0 0 24px color-mix(in oklch, var(--glow-primary), transparent 60%);
+    }
+}
+
+@keyframes section-breath {
+
+    0%,
+    100% {
+        box-shadow: var(--glow-shadow-breath-start);
+    }
+
+    50% {
+        box-shadow: var(--glow-shadow-breath-middle);
+    }
 }
 
 [data-theme="light"] {
@@ -10078,6 +11080,247 @@ function changeLanguage(lang) {
 
 .btn-close:active {
 	transform: scale(0.9) !important;
+}
+
+.form-check {
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-check-input {
+    width: 1.1em;
+    height: 1.1em;
+    margin: 0;
+    background-color: var(--bg-container);
+    border: var(--border-strong);
+    appearance: none;
+    -webkit-appearance: none;
+    transition: var(--transition);
+}
+
+.form-check-input:checked {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
+}
+
+.form-check-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+[data-theme="dark"] .form-check-input[type="checkbox"] {
+    border: 1px solid color-mix(in oklch, var(--glow-primary), transparent 50%);
+    background-color: color-mix(in oklch, var(--bg-body), transparent 20%);
+    box-shadow: 0 0 6px color-mix(in oklch, var(--glow-primary), transparent 70%);
+    transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .form-check-input:checked[type="checkbox"] {
+    background-color: var(--glow-primary);
+    border-color: var(--glow-primary);
+    box-shadow: 0 0 8px var(--glow-primary),
+        inset 0 0 4px white;
+}
+
+[data-theme="dark"] .form-check-input[type="radio"] {
+    border: 1px solid color-mix(in oklch, var(--glow-primary), transparent 50%);
+    background-color: color-mix(in oklch, var(--bg-body), transparent 20%);
+    box-shadow: 0 0 6px color-mix(in oklch, var(--glow-primary), transparent 70%);
+    transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .form-check-input:checked[type="radio"] {
+    background-color: var(--glow-primary);
+    border-color: var(--glow-primary);
+    box-shadow: 0 0 8px var(--glow-primary),
+        inset 0 0 6px color-mix(in oklch, white, transparent 60%);
+}
+
+[data-theme="dark"] .form-check-input:hover {
+    box-shadow: 0 0 10px color-mix(in oklch, var(--glow-primary), transparent 50%);
+}
+
+[data-theme="dark"] .form-check-input:disabled {
+    opacity: 0.5;
+    box-shadow: 0 0 4px color-mix(in oklch, var(--glow-primary), transparent 80%);
+}
+
+[data-theme="dark"] table a svg {
+    filter: drop-shadow(0 0 2px color-mix(in oklch, var(--glow-primary), transparent 30%));
+    transition: filter 0.3s ease;
+}
+
+[data-theme="dark"] table a:hover svg {
+    filter: drop-shadow(0 0 6px var(--glow-primary));
+}
+
+body {
+    margin: 0;
+    color: var(--text-primary);
+    background-attachment: fixed;
+}
+
+.log-box {
+    position: fixed;
+    left: 20px;
+    padding: 12px 16px;
+    background: var(--btn-success-bg);
+    color: white;
+    border-radius: 8px;
+    z-index: 10000000;
+    max-width: 420px;
+    font-size: 15px;
+    word-wrap: break-word;
+    line-height: 1.5;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    transform: translateY(0);
+    opacity: 0;
+    animation: scrollUp 12s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    display: inline-block;
+    margin-bottom: 10px;
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes scrollUp {
+    0% {
+        top: 90%;
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+    }
+    80% {
+        top: 50%;
+        opacity: 1;
+    }
+    100% {
+        top: 45%;
+        opacity: 0;
+    }
+}
+
+.log-box.exiting {
+    animation: fadeOut 0.3s forwards;
+}
+
+.log-content {
+    padding: 6px 20px 6px 8px;
+    color: white;
+}
+
+.close-btn {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.log-box:hover .close-btn {
+    opacity: 0.7;
+    pointer-events: auto;
+}
+
+.log-box:hover .close-btn:hover {
+    opacity: 1;
+}
+
+@keyframes fadeOut {
+    to { 
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+}
+
+.log-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 3px;
+    vertical-align: middle;
+}
+
+.log-box.error { background: linear-gradient(145deg, #ff4444, #cc0000); }
+.log-box.warning { background: linear-gradient(145deg, #ffc107, #ffab00); }
+.log-box.info { background: linear-gradient(145deg, #2196F3, #1976D2); }
+
+@media (max-width: 768px) {
+    .log-box {
+        left: 10px;
+        right: 10px;
+        max-width: none;
+        font-size: 14px;
+    }
+}
+
+.list-group-item {
+    cursor: pointer;
+    color: var(--text-primary);
+    background: var(--bg-container);
+    border: 1px solid var(--border-color);
+    transition: background 0.3s ease;
+}
+
+.list-group-item:hover {
+    background: var(--accent-secondary) !important;
+    color: white !important;
+}
+
+.list-group-item:hover .text-muted,
+.list-group-item:hover .text-truncate {
+    color: white !important;
+}
+
+.list-group-item.active {
+    background: var(--accent-color);
+    color: white;
+    border: 1px solid var(--accent-color);
+}
+
+.list-group-item.active .badge,
+.list-group-item.active .text-truncate,
+.list-group-item.active small,
+.list-group-item.active i {
+    color: white !important;
+}
+
+.list-group-item .delete-item {
+    cursor: pointer;
+}
+
+.modal-xl {
+    max-width: 60% !important;  
+    width: 90% !important;
+}
+
+@media (max-width: 768px) {
+    .modal-xl {
+        max-width: 95% !important;
+        width: 95% !important;
+        margin: 1rem auto !important; 
+    }
+}
+
+@media (max-width: 576px) {
+    .modal-xl {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0.5rem auto !important;
+    }
 }
 </style>
     <link href="/luci-static/spectra/css/bootstrap-icons.css" rel="stylesheet">
@@ -10513,180 +11756,16 @@ if (saved) {
 setInterval(checkColorChange, 1000);
 </script>
 
-<style>
-body {
-    margin: 0;
-    color: var(--text-primary);
-    background-attachment: fixed;
-}
-
-.log-box {
-    position: fixed;
-    left: 20px;
-    padding: 12px 16px;
-    background: var(--btn-success-bg);
-    color: white;
-    border-radius: 8px;
-    z-index: 10000000;
-    max-width: 420px;
-    font-size: 15px;
-    word-wrap: break-word;
-    line-height: 1.5;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
-    transform: translateY(0);
-    opacity: 0;
-    animation: scrollUp 12s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-    display: inline-block;
-    margin-bottom: 10px;
-    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-@keyframes scrollUp {
-    0% {
-        top: 90%;
-        opacity: 0;
-    }
-    20% {
-        opacity: 1;
-    }
-    80% {
-        top: 50%;
-        opacity: 1;
-    }
-    100% {
-        top: 45%;
-        opacity: 0;
-    }
-}
-
-.log-box.exiting {
-    animation: fadeOut 0.3s forwards;
-}
-
-.log-content {
-    padding: 6px 20px 6px 8px;
-    color: white;
-}
-
-.close-btn {
-    position: absolute;
-    top: 6px;
-    right: 10px;
-    background: transparent;
-    border: none;
-    color: inherit;
-    cursor: pointer;
-    font-size: 20px;
-    line-height: 1;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-}
-
-.log-box:hover .close-btn {
-    opacity: 0.7;
-    pointer-events: auto;
-}
-
-.log-box:hover .close-btn:hover {
-    opacity: 1;
-}
-
-@keyframes fadeOut {
-    to { 
-        opacity: 0;
-        transform: translateY(-20px) scale(0.95);
-    }
-}
-
-.log-icon {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    margin-right: 3px;
-    vertical-align: middle;
-}
-
-.log-box.error { background: linear-gradient(145deg, #ff4444, #cc0000); }
-.log-box.warning { background: linear-gradient(145deg, #ffc107, #ffab00); }
-.log-box.info { background: linear-gradient(145deg, #2196F3, #1976D2); }
-
-@media (max-width: 768px) {
-    .log-box {
-        left: 10px;
-        right: 10px;
-        max-width: none;
-        font-size: 14px;
-    }
-}
-
-.list-group-item {
-    cursor: pointer;
-    color: var(--text-primary);
-    background: var(--bg-container);
-    border: 1px solid var(--border-color);
-    transition: background 0.3s ease;
-}
-
-.list-group-item:hover {
-    background: var(--accent-secondary) !important;
-    color: white !important;
-}
-
-.list-group-item:hover .text-muted,
-.list-group-item:hover .text-truncate {
-    color: white !important;
-}
-
-.list-group-item.active {
-    background: var(--accent-color);
-    color: white;
-    border: 1px solid var(--accent-color);
-}
-
-.list-group-item.active .badge,
-.list-group-item.active .text-truncate,
-.list-group-item.active small,
-.list-group-item.active i {
-    color: white !important;
-}
-
-.list-group-item .delete-item {
-    cursor: pointer;
-}
-
-.modal-xl {
-    max-width: 60% !important;  
-    width: 90% !important;
-}
-
-@media (max-width: 768px) {
-    .modal-xl {
-        max-width: 95% !important;
-        width: 95% !important;
-        margin: 1rem auto !important; 
-    }
-}
-
-@media (max-width: 576px) {
-    .modal-xl {
-        max-width: 100% !important;
-        width: 100% !important;
-        margin: 0.5rem auto !important;
-    }
-}
-</style>
-
 <script>
 window.showLogMessage = (function() {
     const bgColors = [
-        'var(--ocean-bg)',
-        'var(--forest-bg)',
-        'var(--lavender-bg)',
-        'var(--sand-bg)'
+        'oklch(var(--l) var(--c) var(--base-hue-1))',
+        'oklch(var(--l) var(--c) var(--base-hue-2))',
+        'oklch(var(--l) var(--c) var(--base-hue-3))',
+        'oklch(var(--l) var(--c) var(--base-hue-4))',
+        'oklch(var(--l) var(--c) var(--base-hue-5))',
+        'oklch(var(--l) var(--c) var(--base-hue-6))',
+        'oklch(var(--l) var(--c) var(--base-hue-7))'
     ];
     
     let currentIndex = 0;
